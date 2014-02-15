@@ -8,6 +8,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"log"
 	"unsafe"
 )
 
@@ -94,4 +95,58 @@ func (conn Connection) LibVersion() (uint64, error) {
 	}
 
 	return uint64(cVersion), nil
+}
+
+// IsAlive determines if the connection to the hypervisor is still alive.
+// If an error occurs, the function will also return "false" and the error
+// message will be written to the log.
+func (conn Connection) IsAlive() bool {
+	cRet := C.virConnectIsAlive(conn.virConnect)
+	ret := int(cRet)
+
+	if ret == 1 {
+		return true
+	}
+
+	if ret == -1 {
+		log.Println("could not check if libvirt connection is alive")
+	}
+
+	return false
+}
+
+// IsEncrypted determines if the connection to the hypervisor is encrypted.
+// If an error occurs, the function will also return "false" and the error
+// message will be written to the log.
+func (conn Connection) IsEncrypted() bool {
+	cRet := C.virConnectIsEncrypted(conn.virConnect)
+	ret := int(cRet)
+
+	if ret == 1 {
+		return true
+	}
+
+	if ret == -1 {
+		log.Println("could not check if libvirt connection is encrypted")
+	}
+
+	return false
+}
+
+// IsSecure determines if the connection to the hypervisor is secure.
+// If an error occurs, the function will also return "false" and the error
+// message will be written to the log.
+func (conn Connection) IsSecure() bool {
+	cRet := C.virConnectIsSecure(conn.virConnect)
+	ret := int(cRet)
+
+	if ret == 1 {
+		return true
+	}
+
+	if ret == -1 {
+		log.Println("could not check if libvirt connection is secure")
+	}
+
+	return false
 }

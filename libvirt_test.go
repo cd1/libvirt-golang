@@ -12,6 +12,16 @@ func TestOpen(t *testing.T) {
 		t.Error(err)
 	}
 	defer conn.Close()
+
+	if !conn.IsAlive() {
+		t.Error("the libvirt connection was opened but it is not alive")
+	}
+
+	// IsEncrypted
+
+	if !conn.IsSecure() {
+		t.Error("the libvirt connection is not secure")
+	}
 }
 
 func TestOpenReadOnly(t *testing.T) {
@@ -20,6 +30,16 @@ func TestOpenReadOnly(t *testing.T) {
 		t.Error(err)
 	}
 	defer conn.Close()
+
+	if !conn.IsAlive() {
+		t.Error("the libvirt connection was opened but it is not alive")
+	}
+
+	// IsEncrypted
+
+	if !conn.IsSecure() {
+		t.Error("the libvirt connection is not secure")
+	}
 }
 
 func TestOpenBadUri(t *testing.T) {
