@@ -1,6 +1,7 @@
 package libvirt
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -83,6 +84,91 @@ func TestLibVersion(t *testing.T) {
 
 	if version < 0 {
 		t.Errorf("libvirt version should be a positive number: %d", version)
+	}
+}
+
+func TestCapabilities(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	cap, err := conn.Capabilities()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(cap) == 0 {
+		t.Error("libvirt capabilities should not be empty")
+	}
+}
+
+func TestHostname(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	hostname, err := conn.Hostname()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(hostname) == 0 {
+		t.Error("libvirt hostname should not be empty")
+	}
+}
+
+func TestSysinfo(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	sysinfo, err := conn.Sysinfo()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(sysinfo) == 0 {
+		t.Error("libvirt sysinfo should not be empty")
+	}
+}
+
+func TestType(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	typ, err := conn.Type()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(typ) == 0 {
+		t.Error("libvirt type should not be empty")
+	}
+}
+
+func TestUri(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	uri, err := conn.Uri()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !bytes.Equal([]byte(uri), []byte(HYPERVISOR_URI)) {
+		t.Errorf("libvirt URI should be the same used to open the connection; want=%s, got=%s", HYPERVISOR_URI, uri)
 	}
 }
 

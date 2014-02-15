@@ -150,3 +150,72 @@ func (conn Connection) IsSecure() bool {
 
 	return false
 }
+
+// Capabilities provides capabilities of the hypervisor/driver.
+func (conn Connection) Capabilities() (string, error) {
+	cCap := C.virConnectGetCapabilities(conn.virConnect)
+	if cCap == nil {
+		return "", errors.New("failed to get hypervisor capabilities")
+	}
+	defer C.free(unsafe.Pointer(cCap))
+
+	return C.GoString(cCap), nil
+}
+
+// Hostname returns a system hostname on which the hypervisor is running
+// (based on the result of the gethostname system call, but possibly expanded
+// to a fully-qualified domain name via getaddrinfo). If we are connected to a
+// remote system, then this returns the hostname of the remote system.
+func (conn Connection) Hostname() (string, error) {
+	cHostname := C.virConnectGetHostname(conn.virConnect)
+	if cHostname == nil {
+		return "", errors.New("failed to get hypervisor hostname")
+	}
+	defer C.free(unsafe.Pointer(cHostname))
+
+	return C.GoString(cHostname), nil
+}
+
+// Sysinfo returns the XML description of the sysinfo details for the host on
+// which the hypervisor is running, in the same format as the <sysinfo> element
+// of a domain XML. This information is generally available only for
+// hypervisors running with root privileges.
+func (conn Connection) Sysinfo() (string, error) {
+	cSysinfo := C.virConnectGetSysinfo(conn.virConnect, 0)
+	if cSysinfo == nil {
+		return "", errors.New("failed to get hypervisor sysinfo")
+	}
+	defer C.free(unsafe.Pointer(cSysinfo))
+
+	return C.GoString(cSysinfo), nil
+}
+
+// Type gets the name of the Hypervisor driver used. This is merely the driver
+// name; for example, both KVM and QEMU guests are serviced by the driver for
+// the qemu:// URI, so a return of "QEMU" does not indicate whether KVM
+// acceleration is present. For more details about the hypervisor, use
+// Capabilities.
+func (conn Connection) Type() (string, error) {
+	cType := C.virConnectGetType(conn.virConnect)
+	if cType == nil {
+		return "", errors.New("failed to get hypervisor type")
+	}
+	defer C.free(unsafe.Pointer(cType))
+
+	return C.GoString(cType), nil
+}
+
+// Uri returns the URI (name) of the hypervisor connection. Normally this is
+// the same as or similar to the string passed to the Open/OpenReadOnly call,
+// but the driver may make the URI canonical. If uri == "" was passed to Open,
+// then the driver will return a non-NULL URI which can be used to connect tos
+// the same hypervisor later.
+func (conn Connection) Uri() (string, error) {
+	cUri := C.virConnectGetURI(conn.virConnect)
+	if cUri == nil {
+		return "", errors.New("failed to get hypervisor URI")
+	}
+	defer C.free(unsafe.Pointer(cUri))
+
+	return C.GoString(cUri), nil
+}
