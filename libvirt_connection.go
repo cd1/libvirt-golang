@@ -68,3 +68,30 @@ func (conn Connection) Close() (int, error) {
 
 	return ret, nil
 }
+
+// Version gets the version level of the Hypervisor running.
+func (conn Connection) Version() (uint64, error) {
+	var cVersion C.ulong
+	cRet := C.virConnectGetVersion(conn.virConnect, &cVersion)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, errors.New("failed to get hypervisor version")
+	}
+
+	return uint64(cVersion), nil
+}
+
+// LibVersion provides the version of libvirt used by the daemon running on
+// the host.
+func (conn Connection) LibVersion() (uint64, error) {
+	var cVersion C.ulong
+	cRet := C.virConnectGetLibVersion(conn.virConnect, &cVersion)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, errors.New("failed to get libvirt version")
+	}
+
+	return uint64(cVersion), nil
+}

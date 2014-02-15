@@ -32,6 +32,40 @@ func TestOpenBadUri(t *testing.T) {
 	}
 }
 
+func TestVersion(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	version, err := conn.Version()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if version < 0 {
+		t.Errorf("hypervisor version should be a positive number: %d", version)
+	}
+}
+
+func TestLibVersion(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	version, err := conn.LibVersion()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if version < 0 {
+		t.Errorf("libvirt version should be a positive number: %d", version)
+	}
+}
+
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(HYPERVISOR_URI)
