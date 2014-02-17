@@ -23,6 +23,10 @@ func TestOpen(t *testing.T) {
 	if !conn.IsSecure() {
 		t.Error("the libvirt connection is not secure")
 	}
+
+	if _, err := Open("xxx"); err == nil {
+		t.Error("an error was not returned when connecting to a bad URI")
+	}
 }
 
 func TestOpenReadOnly(t *testing.T) {
@@ -40,12 +44,6 @@ func TestOpenReadOnly(t *testing.T) {
 
 	if !conn.IsSecure() {
 		t.Error("the libvirt connection is not secure")
-	}
-}
-
-func TestOpenBadUri(t *testing.T) {
-	if _, err := Open("xxx"); err == nil {
-		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
 	if _, err := OpenReadOnly("xxx"); err == nil {
