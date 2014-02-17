@@ -200,7 +200,6 @@ func (conn Connection) Type() (string, error) {
 	if cType == nil {
 		return "", errors.New("failed to get hypervisor type")
 	}
-	defer C.free(unsafe.Pointer(cType))
 
 	return C.GoString(cType), nil
 }
