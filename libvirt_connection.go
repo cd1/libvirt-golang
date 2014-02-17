@@ -219,3 +219,59 @@ func (conn Connection) Uri() (string, error) {
 
 	return C.GoString(cUri), nil
 }
+
+// Ref increments the reference count on the connection. For each additional
+// call to this method, there shall be a corresponding call to Close to release
+// the reference count, once the caller no longer needs the reference to
+// this object.
+func (conn Connection) Ref() error {
+	cRet := C.virConnectRef(conn.virConnect)
+	ret := int(cRet)
+	if ret == 0 {
+		return nil
+	} else {
+		return errors.New("failed to increment libvirt connection reference count")
+	}
+}
+
+// CpuModelNames gets the list of supported CPU models for a
+// specific architecture.
+func (conn Connection) CpuModelNames(arch string) ([]string, error) {
+	var cModels **C.char
+	cArch := C.CString(arch)
+	defer C.free(unsafe.Pointer(cArch))
+
+	cRet := C.virConnectGetCPUModelNames(conn.virConnect, cArch, &cModels, 0)
+	ret := int(cRet)
+	defer C.free(unsafe.Pointer(cModels))
+
+	if ret == -1 {
+		return nil, fmt.Errorf("failed to get CPU model names for arch %s", arch)
+	}
+
+	cBackedModels := (*[1 << 30]*C.char)(unsafe.Pointer(cModels))[:ret:ret]
+	models := make([]string, 0, ret)
+	for i := 0; i < ret; i++ {
+		models = append(models, C.GoString(cBackedModels[i]))
+		defer C.free(unsafe.Pointer(cBackedModels[i]))
+	}
+
+	return models, nil
+}
+
+// MaxVcpus provides the maximum number of virtual CPUs supported for a guest
+// VM of a specific type. The 'type' parameter here corresponds to the 'type'
+// attribute in the <domain> element of the XML
+func (conn Connection) MaxVcpus(typ string) (int, error) {
+	cTyp := C.CString(typ)
+	defer C.free(unsafe.Pointer(cTyp))
+
+	cRet := C.virConnectGetMaxVcpus(conn.virConnect, cTyp)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, fmt.Errorf("failed to get maximum VCPUs numbers for type %s", typ)
+	}
+
+	return ret, nil
+}

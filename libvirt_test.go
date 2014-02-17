@@ -172,6 +172,68 @@ func TestUri(t *testing.T) {
 	}
 }
 
+func TestRef(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := conn.Ref(); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := conn.Close(); err != nil {
+		t.Error(err)
+	}
+	if _, err := conn.Close(); err != nil {
+		t.Error("could not close the connection for the second time after calling Ref")
+	}
+}
+
+func TestCpuModelNames(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	models, err := conn.CpuModelNames("x86_64")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(models) == 0 {
+		t.Error("libvirt CPU model names should not be empty")
+	}
+
+	_, err = conn.CpuModelNames("xxx")
+	if err == nil {
+		t.Error("an error was not returned when getting CPU model names from invalid arch")
+	}
+}
+
+func TestMaxVcpus(t *testing.T) {
+	conn, err := Open(HYPERVISOR_URI)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+
+	vcpus, err := conn.MaxVcpus("kvm")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if vcpus < 0 {
+		t.Error("libvirt maximum VCPU should be a positive number")
+	}
+
+    _, err = conn.MaxVcpus("xxx")
+	if err == nil {
+		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
+	}
+}
+
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(HYPERVISOR_URI)
