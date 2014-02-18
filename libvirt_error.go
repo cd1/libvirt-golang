@@ -1,0 +1,219 @@
+package libvirt
+
+// #include <libvirt/virterror.h>
+import "C"
+import (
+	"fmt"
+	"log"
+)
+
+type ErrorCode uint
+
+const (
+	ERR_OK ErrorCode = iota
+	ERR_INTERNAL
+	ERR_NO_MEMORY
+	ERR_NO_SUPPORT
+	ERR_UNKNOWN_HOST
+	ERR_NO_CONNECT
+	ERR_INVALID_CONN
+	ERR_INVALID_DOMAIN
+	ERR_INVALID_ARG
+	ERR_OPERATION_FAILED
+	ERR_GET_FAILED
+	ERR_POST_FAILED
+	ERR_HTTP
+	ERR_SEXPR_SERIAL
+	ERR_NO_XEN
+	ERR_XEN_CALL
+	ERR_OS_TYPE
+	ERR_NO_KERNEL
+	ERR_NO_ROOT
+	ERR_NO_SOURCE
+	ERR_NO_TARGET
+	ERR_NO_NAME
+	ERR_NO_OS
+	ERR_NO_DEVICE
+	ERR_NO_XENSTORE
+	ERR_DRIVER_FULL
+	ERR_CALL_FAILED
+	ERR_XML
+	ERR_DOM_EXIST
+	ERR_OPERATION_DENIED
+	ERR_OPEN_FAILED
+	ERR_READ_FAILED
+	ERR_PARSE_FAILED
+	ERR_CONF_SYNTAX
+	ERR_WRITE_FAILED
+	ERR_XML_DETAIL
+	ERR_INVALID_NETWORK
+	ERR_NETWORK_EXIST
+	ERR_SYSTEM
+	ERR_RPC
+	ERR_GNUTLS
+	ERR_VIR_WAR_NO_NETWORK
+	ERR_NO_DOMAIN
+	ERR_NO_NETWORK
+	ERR_INVALID_MAC
+	ERR_AUTH_FAILED
+	ERR_INVALID_STORAGE_POOL
+	ERR_INVALID_STORAGE_VOL
+	ERR_VIR_WAR_NO_STORAGE
+	ERR_NO_STORAGE_POOL
+	ERR_NO_STORAGE_VOL
+	ERR_VIR_WAR_NO_NODE
+	ERR_INVALID_NODE_DEVICE
+	ERR_NO_NODE_DEVICE
+	ERR_NO_SECURITY_MODEL
+	ERR_OPERATION_INVALID
+	ERR_VIR_WAR_NO_INTERFACE
+	ERR_NO_INTERFACE
+	ERR_INVALID_INTERFACE
+	ERR_MULTIPLE_INTERFACES
+	ERR_VIR_WAR_NO_NWFILTER
+	ERR_INVALID_NWFILTER
+	ERR_NO_NWFILTER
+	ERR_BUILD_FIREWALL
+	ERR_VIR_WAR_NO_SECRET
+	ERR_INVALID_SECRET
+	ERR_NO_SECRET
+	ERR_CONFIG_UNSUPPORTED
+	ERR_OPERATION_TIMEOUT
+	ERR_MIGRATE_PERSIST_FAILED
+	ERR_HOOK_SCRIPT_FAILED
+	ERR_INVALID_DOMAIN_SNAPSHOT
+	ERR_NO_DOMAIN_SNAPSHOT
+	ERR_INVALID_STREAM
+	ERR_ARGUMENT_UNSUPPORTED
+	ERR_STORAGE_PROBE_FAILED
+	ERR_STORAGE_POOL_BUILT
+	ERR_SNAPSHOT_REVERT_RISKY
+	ERR_OPERATION_ABORTED
+	ERR_AUTH_CANCELLED
+	ERR_NO_DOMAIN_METADATA
+	ERR_MIGRATE_UNSAFE
+	ERR_OVERFLOW
+	ERR_BLOCK_COPY_ACTIVE
+	ERR_OPERATION_UNSUPPORTED
+	ERR_SSH
+	ERR_AGENT_UNRESPONSIVE
+	ERR_RESOURCE_BUSY
+	ERR_ACCESS_DENIED
+	ERR_DBUS_SERVICE
+	ERR_STORAGE_VOL_EXIST
+)
+
+type ErrorDomain uint
+
+const (
+	DOM_NONE ErrorDomain = iota
+	DOM_XEN
+	DOM_XEND
+	DOM_XENSTORE
+	DOM_SEXPR
+	DOM_XML
+	DOM_DOM
+	DOM_RPC
+	DOM_PROXY
+	DOM_CONF
+	DOM_QEMU
+	DOM_NET
+	DOM_TEST
+	DOM_REMOTE
+	DOM_OPENVZ
+	DOM_XENXM
+	DOM_STATS_LINUX
+	DOM_LXC
+	DOM_STORAGE
+	DOM_NETWORK
+	DOM_DOMAIN
+	DOM_UML
+	DOM_NODEDEV
+	DOM_XEN_INOTIFY
+	DOM_SECURITY
+	DOM_VBOX
+	DOM_INTERFACE
+	DOM_ONE
+	DOM_ESX
+	DOM_PHYP
+	DOM_SECRET
+	DOM_CPU
+	DOM_XENAPI
+	DOM_NWFILTER
+	DOM_HOOK
+	DOM_DOMAIN_SNAPSHOT
+	DOM_AUDIT
+	DOM_SYSINFO
+	DOM_STREAMS
+	DOM_VMWARE
+	DOM_EVENT
+	DOM_LIBXL
+	DOM_LOCKING
+	DOM_HYPERV
+	DOM_CAPABILITIES
+	DOM_URI
+	DOM_AUTH
+	DOM_DBUS
+	DOM_PARALLELS
+	DOM_DEVICE
+	DOM_SSH
+	DOM_LOCKSPACE
+	DOM_INITCTL
+	DOM_IDENTITY
+	DOM_CGROUP
+	DOM_ACCESS
+	DOM_SYSTEMD
+)
+
+type ErrorLevel uint
+
+const (
+	LVL_NONE ErrorLevel = (0 << iota)
+	LVL_WARNING
+	LVL_ERROR
+)
+
+type Error struct {
+	Code             ErrorCode
+	Domain           ErrorDomain
+	Message          string
+	Level            ErrorLevel
+	Str1, Str2, Str3 string
+	Int1, Int2       int
+}
+
+func (err *Error) Error() string {
+	return fmt.Sprintf("%s [%d]", err.Message, err.Code)
+}
+
+// newError creates an error based on a native libvirt error. If the libvirt
+// error pointer is nil, returns nil.
+func newError(virError C.virErrorPtr) *Error {
+	if virError == nil {
+		return nil
+	}
+
+	return &Error{
+		ErrorCode(virError.code),
+		ErrorDomain(virError.domain),
+		C.GoString(virError.message),
+		ErrorLevel(virError.level),
+		C.GoString(virError.str1),
+		C.GoString(virError.str2),
+		C.GoString(virError.str2),
+		int(virError.int1),
+		int(virError.int2),
+	}
+}
+
+// lastError provides a pointer to the last error caught at the library level.
+// The error object is kept in thread local storage, so separate threads can
+// safely access this concurrently.
+func lastError() *Error {
+	cError := C.virGetLastError()
+	if cError == nil {
+		log.Println("LastError() did not return an error")
+	}
+
+	return newError(cError)
+}
