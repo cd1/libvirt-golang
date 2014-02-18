@@ -226,7 +226,7 @@ func TestMaxVcpus(t *testing.T) {
 		t.Error("libvirt maximum VCPU should be a positive number")
 	}
 
-    _, err = conn.MaxVcpus("xxx")
+	_, err = conn.MaxVcpus("xxx")
 	if err == nil {
 		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
 	}
