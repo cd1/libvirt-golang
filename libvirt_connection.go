@@ -3,11 +3,8 @@ package libvirt
 // #cgo pkg-config: libvirt
 // #include <stdlib.h>
 // #include <libvirt/libvirt.h>
-// #include <libvirt/virterror.h>
 import "C"
 import (
-	"errors"
-	"fmt"
 	"log"
 	"unsafe"
 )
@@ -19,13 +16,13 @@ type Connection struct {
 
 // Open creates a new libvirt connection to the Hypervisor. The URIs are
 // documented at http://libvirt.org/uri.html.
-func Open(uri string) (Connection, error) {
+func Open(uri string) (Connection, *Error) {
 	cUri := C.CString(uri)
 	defer C.free(unsafe.Pointer(cUri))
 
 	cConn := C.virConnectOpen(cUri)
 	if cConn == nil {
-		return Connection{}, fmt.Errorf("libvirt connection to %s failed", uri)
+		return Connection{}, lastError()
 	}
 
 	return Connection{cConn}, nil
@@ -33,13 +30,13 @@ func Open(uri string) (Connection, error) {
 
 // OpenReadOnly creates a restricted libvirt connection. The URIs are
 // documented at http://libvirt.org/uri.html.
-func OpenReadOnly(uri string) (Connection, error) {
+func OpenReadOnly(uri string) (Connection, *Error) {
 	cUri := C.CString(uri)
 	defer C.free(unsafe.Pointer(cUri))
 
 	cConn := C.virConnectOpenReadOnly(cUri)
 	if cConn == nil {
-		return Connection{}, fmt.Errorf("libvirt connection to %s failed", uri)
+		return Connection{}, lastError()
 	}
 
 	return Connection{cConn}, nil
@@ -59,25 +56,25 @@ func OpenReadOnly(uri string) (Connection, error) {
 // positive value if some other object still has a temporary reference to the
 // connection, but the application should not try to further use a connection
 // after the Close that matches the initial open.
-func (conn Connection) Close() (int, error) {
+func (conn Connection) Close() (int, *Error) {
 	cRet := C.virConnectClose(conn.virConnect)
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, errors.New("failed to close libvirt connection")
+		return 0, lastError()
 	}
 
 	return ret, nil
 }
 
 // Version gets the version level of the Hypervisor running.
-func (conn Connection) Version() (uint64, error) {
+func (conn Connection) Version() (uint64, *Error) {
 	var cVersion C.ulong
 	cRet := C.virConnectGetVersion(conn.virConnect, &cVersion)
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, errors.New("failed to get hypervisor version")
+		return 0, lastError()
 	}
 
 	return uint64(cVersion), nil
@@ -85,13 +82,13 @@ func (conn Connection) Version() (uint64, error) {
 
 // LibVersion provides the version of libvirt used by the daemon running on
 // the host.
-func (conn Connection) LibVersion() (uint64, error) {
+func (conn Connection) LibVersion() (uint64, *Error) {
 	var cVersion C.ulong
 	cRet := C.virConnectGetLibVersion(conn.virConnect, &cVersion)
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, errors.New("failed to get libvirt version")
+		return 0, lastError()
 	}
 
 	return uint64(cVersion), nil
@@ -109,7 +106,9 @@ func (conn Connection) IsAlive() bool {
 	}
 
 	if ret == -1 {
-		log.Println("could not check if libvirt connection is alive")
+		if err := lastError(); err != nil {
+			log.Println(err)
+		}
 	}
 
 	return false
@@ -127,7 +126,9 @@ func (conn Connection) IsEncrypted() bool {
 	}
 
 	if ret == -1 {
-		log.Println("could not check if libvirt connection is encrypted")
+		if err := lastError(); err != nil {
+			log.Println(err)
+		}
 	}
 
 	return false
@@ -145,17 +146,19 @@ func (conn Connection) IsSecure() bool {
 	}
 
 	if ret == -1 {
-		log.Println("could not check if libvirt connection is secure")
+		if err := lastError(); err != nil {
+			log.Println(err)
+		}
 	}
 
 	return false
 }
 
 // Capabilities provides capabilities of the hypervisor/driver.
-func (conn Connection) Capabilities() (string, error) {
+func (conn Connection) Capabilities() (string, *Error) {
 	cCap := C.virConnectGetCapabilities(conn.virConnect)
 	if cCap == nil {
-		return "", errors.New("failed to get hypervisor capabilities")
+		return "", lastError()
 	}
 	defer C.free(unsafe.Pointer(cCap))
 
@@ -166,10 +169,10 @@ func (conn Connection) Capabilities() (string, error) {
 // (based on the result of the gethostname system call, but possibly expanded
 // to a fully-qualified domain name via getaddrinfo). If we are connected to a
 // remote system, then this returns the hostname of the remote system.
-func (conn Connection) Hostname() (string, error) {
+func (conn Connection) Hostname() (string, *Error) {
 	cHostname := C.virConnectGetHostname(conn.virConnect)
 	if cHostname == nil {
-		return "", errors.New("failed to get hypervisor hostname")
+		return "", lastError()
 	}
 	defer C.free(unsafe.Pointer(cHostname))
 
@@ -180,10 +183,10 @@ func (conn Connection) Hostname() (string, error) {
 // which the hypervisor is running, in the same format as the <sysinfo> element
 // of a domain XML. This information is generally available only for
 // hypervisors running with root privileges.
-func (conn Connection) Sysinfo() (string, error) {
+func (conn Connection) Sysinfo() (string, *Error) {
 	cSysinfo := C.virConnectGetSysinfo(conn.virConnect, 0)
 	if cSysinfo == nil {
-		return "", errors.New("failed to get hypervisor sysinfo")
+		return "", lastError()
 	}
 	defer C.free(unsafe.Pointer(cSysinfo))
 
@@ -195,10 +198,10 @@ func (conn Connection) Sysinfo() (string, error) {
 // the qemu:// URI, so a return of "QEMU" does not indicate whether KVM
 // acceleration is present. For more details about the hypervisor, use
 // Capabilities.
-func (conn Connection) Type() (string, error) {
+func (conn Connection) Type() (string, *Error) {
 	cType := C.virConnectGetType(conn.virConnect)
 	if cType == nil {
-		return "", errors.New("failed to get hypervisor type")
+		return "", lastError()
 	}
 
 	return C.GoString(cType), nil
@@ -209,10 +212,10 @@ func (conn Connection) Type() (string, error) {
 // but the driver may make the URI canonical. If uri == "" was passed to Open,
 // then the driver will return a non-NULL URI which can be used to connect tos
 // the same hypervisor later.
-func (conn Connection) Uri() (string, error) {
+func (conn Connection) Uri() (string, *Error) {
 	cUri := C.virConnectGetURI(conn.virConnect)
 	if cUri == nil {
-		return "", errors.New("failed to get hypervisor URI")
+		return "", lastError()
 	}
 	defer C.free(unsafe.Pointer(cUri))
 
@@ -223,19 +226,19 @@ func (conn Connection) Uri() (string, error) {
 // call to this method, there shall be a corresponding call to Close to release
 // the reference count, once the caller no longer needs the reference to
 // this object.
-func (conn Connection) Ref() error {
+func (conn Connection) Ref() *Error {
 	cRet := C.virConnectRef(conn.virConnect)
 	ret := int(cRet)
 	if ret == 0 {
 		return nil
 	} else {
-		return errors.New("failed to increment libvirt connection reference count")
+		return lastError()
 	}
 }
 
 // CpuModelNames gets the list of supported CPU models for a
 // specific architecture.
-func (conn Connection) CpuModelNames(arch string) ([]string, error) {
+func (conn Connection) CpuModelNames(arch string) ([]string, *Error) {
 	var cModels **C.char
 	cArch := C.CString(arch)
 	defer C.free(unsafe.Pointer(cArch))
@@ -245,7 +248,7 @@ func (conn Connection) CpuModelNames(arch string) ([]string, error) {
 	defer C.free(unsafe.Pointer(cModels))
 
 	if ret == -1 {
-		return nil, fmt.Errorf("failed to get CPU model names for arch %s", arch)
+		return nil, lastError()
 	}
 
 	cBackedModels := (*[1 << 30]*C.char)(unsafe.Pointer(cModels))[:ret:ret]
@@ -261,7 +264,7 @@ func (conn Connection) CpuModelNames(arch string) ([]string, error) {
 // MaxVcpus provides the maximum number of virtual CPUs supported for a guest
 // VM of a specific type. The 'type' parameter here corresponds to the 'type'
 // attribute in the <domain> element of the XML
-func (conn Connection) MaxVcpus(typ string) (int, error) {
+func (conn Connection) MaxVcpus(typ string) (int, *Error) {
 	cTyp := C.CString(typ)
 	defer C.free(unsafe.Pointer(cTyp))
 
@@ -269,7 +272,7 @@ func (conn Connection) MaxVcpus(typ string) (int, error) {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, fmt.Errorf("failed to get maximum VCPUs numbers for type %s", typ)
+		return 0, lastError()
 	}
 
 	return ret, nil
