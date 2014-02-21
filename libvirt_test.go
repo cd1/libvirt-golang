@@ -8,9 +8,13 @@ import (
 const HYPERVISOR_URI = "qemu:///system"
 
 func TestOpen(t *testing.T) {
+	if _, err := Open("xxx"); err == nil {
+		t.Error("an error was not returned when connecting to a bad URI")
+	}
+
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
@@ -22,17 +26,17 @@ func TestOpen(t *testing.T) {
 
 	if !conn.IsSecure() {
 		t.Error("the libvirt connection is not secure")
-	}
-
-	if _, err := Open("xxx"); err == nil {
-		t.Error("an error was not returned when connecting to a bad URI")
 	}
 }
 
 func TestOpenReadOnly(t *testing.T) {
+	if _, err := OpenReadOnly("xxx"); err == nil {
+		t.Error("an error was not returned when connecting (RO) to a bad URI")
+	}
+
 	conn, err := OpenReadOnly(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
@@ -44,23 +48,19 @@ func TestOpenReadOnly(t *testing.T) {
 
 	if !conn.IsSecure() {
 		t.Error("the libvirt connection is not secure")
-	}
-
-	if _, err := OpenReadOnly("xxx"); err == nil {
-		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
 }
 
 func TestVersion(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	version, err := conn.Version()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if version < 0 {
@@ -71,13 +71,13 @@ func TestVersion(t *testing.T) {
 func TestLibVersion(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	version, err := conn.LibVersion()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if version < 0 {
@@ -88,13 +88,13 @@ func TestLibVersion(t *testing.T) {
 func TestCapabilities(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	cap, err := conn.Capabilities()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(cap) == 0 {
@@ -105,13 +105,13 @@ func TestCapabilities(t *testing.T) {
 func TestHostname(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	hostname, err := conn.Hostname()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(hostname) == 0 {
@@ -122,13 +122,13 @@ func TestHostname(t *testing.T) {
 func TestSysinfo(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	sysinfo, err := conn.Sysinfo()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(sysinfo) == 0 {
@@ -139,13 +139,13 @@ func TestSysinfo(t *testing.T) {
 func TestType(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	typ, err := conn.Type()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(typ) == 0 {
@@ -156,13 +156,13 @@ func TestType(t *testing.T) {
 func TestUri(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
 	uri, err := conn.Uri()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if !bytes.Equal([]byte(uri), []byte(HYPERVISOR_URI)) {
@@ -173,11 +173,11 @@ func TestUri(t *testing.T) {
 func TestRef(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := conn.Ref(); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if _, err := conn.Close(); err != nil {
@@ -191,44 +191,42 @@ func TestRef(t *testing.T) {
 func TestCpuModelNames(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
+	if _, err = conn.CpuModelNames("xxx"); err == nil {
+		t.Error("an error was not returned when getting CPU model names from invalid arch")
+	}
+
 	models, err := conn.CpuModelNames("x86_64")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(models) == 0 {
 		t.Error("libvirt CPU model names should not be empty")
-	}
-
-	_, err = conn.CpuModelNames("xxx")
-	if err == nil {
-		t.Error("an error was not returned when getting CPU model names from invalid arch")
 	}
 }
 
 func TestMaxVcpus(t *testing.T) {
 	conn, err := Open(HYPERVISOR_URI)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
+	if _, err = conn.MaxVcpus("xxx"); err == nil {
+		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
+	}
+
 	vcpus, err := conn.MaxVcpus("kvm")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if vcpus < 0 {
 		t.Error("libvirt maximum VCPU should be a positive number")
-	}
-
-	_, err = conn.MaxVcpus("xxx")
-	if err == nil {
-		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
 	}
 }
 
