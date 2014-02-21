@@ -6,6 +6,7 @@ import (
 )
 
 const QEMU_URI = "qemu:///system"
+const TEST_URI = "test:///default"
 
 func TestOpen(t *testing.T) {
 	if _, err := Open("xxx"); err == nil {
@@ -233,6 +234,19 @@ func TestMaxVcpus(t *testing.T) {
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(QEMU_URI)
+		if err != nil {
+			b.Error(err)
+		}
+
+		if _, err := conn.Close(); err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkTestConnection(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		conn, err := Open(TEST_URI)
 		if err != nil {
 			b.Error(err)
 		}
