@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-const HYPERVISOR_URI = "qemu:///system"
+const QEMU_URI = "qemu:///system"
 
 func TestOpen(t *testing.T) {
 	if _, err := Open("xxx"); err == nil {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestOpenReadOnly(t *testing.T) {
 		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
 
-	conn, err := OpenReadOnly(HYPERVISOR_URI)
+	conn, err := OpenReadOnly(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestOpenReadOnly(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestLibVersion(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestLibVersion(t *testing.T) {
 }
 
 func TestCapabilities(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestCapabilities(t *testing.T) {
 }
 
 func TestHostname(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestHostname(t *testing.T) {
 }
 
 func TestSysinfo(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestSysinfo(t *testing.T) {
 }
 
 func TestType(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestType(t *testing.T) {
 }
 
 func TestUri(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,13 +165,13 @@ func TestUri(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte(uri), []byte(HYPERVISOR_URI)) {
-		t.Errorf("libvirt URI should be the same used to open the connection; want=%s, got=%s", HYPERVISOR_URI, uri)
+	if !bytes.Equal([]byte(uri), []byte(QEMU_URI)) {
+		t.Errorf("libvirt URI should be the same used to open the connection; want=%s, got=%s", QEMU_URI, uri)
 	}
 }
 
 func TestRef(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestRef(t *testing.T) {
 }
 
 func TestCpuModelNames(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestCpuModelNames(t *testing.T) {
 }
 
 func TestMaxVcpus(t *testing.T) {
-	conn, err := Open(HYPERVISOR_URI)
+	conn, err := Open(QEMU_URI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestMaxVcpus(t *testing.T) {
 
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(HYPERVISOR_URI)
+		conn, err := Open(QEMU_URI)
 		if err != nil {
 			b.Error(err)
 		}
