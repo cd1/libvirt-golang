@@ -231,6 +231,25 @@ func TestMaxVcpus(t *testing.T) {
 	}
 }
 
+func TestListDomains(t *testing.T) {
+	conn, err := Open(QEMU_URI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	domains, err := conn.ListDomains(ALL_DOMAINS)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, d := range domains {
+		if err := d.Free(); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(QEMU_URI)

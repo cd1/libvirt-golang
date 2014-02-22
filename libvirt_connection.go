@@ -277,3 +277,24 @@ func (conn Connection) MaxVcpus(typ string) (int, *Error) {
 
 	return ret, nil
 }
+
+// ListDomains collects a possibly-filtered list of all domains, and return an
+// array of information for each.
+func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
+	var cDomains *C.virDomainPtr
+	cRet := C.virConnectListAllDomains(conn.virConnect, &cDomains, (C.uint)(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return nil, lastError()
+	}
+	defer C.free(unsafe.Pointer(cDomains))
+
+	cBackedDomains := (*[1 << 30]C.virDomainPtr)(unsafe.Pointer(cDomains))[:ret:ret]
+	domains := make([]Domain, 0, ret)
+	for i := 0; i < ret; i++ {
+		domains = append(domains, Domain{cBackedDomains[i]})
+	}
+
+	return domains, nil
+}
