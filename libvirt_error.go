@@ -184,7 +184,7 @@ type Error struct {
 }
 
 func (err *Error) Error() string {
-	return fmt.Sprintf("%s [%d]", err.Message, err.Code)
+	return fmt.Sprintf("%s [error code = %d]", err.Message, err.Code)
 }
 
 // NewError creates an error based on a native libvirt error. If the libvirt
