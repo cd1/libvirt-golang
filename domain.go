@@ -7,21 +7,21 @@ import "C"
 type DomainFlag uint
 
 const (
-	ALL_DOMAINS DomainFlag = (0 << iota)
-	ACTIVE
-	INACTIVE
-	PERSISTENT
-	TRANSIENT
-	RUNNING
-	PAUSED
-	SHUTOFF
-	OTHER
-	MANAGEDSAVE
-	NO_MANAGEDSAVE
-	AUTOSTART
-	NO_AUTOSTART
-	HAS_SNAPSHOT
-	NO_SNAPSHOT
+	DomAll DomainFlag = (0 << iota)
+	DomActive
+	DomInactive
+	DomPersistent
+	DomTransient
+	DomRunning
+	DomPaused
+	DomShutOff
+	DomOther
+	DomManagedSave
+	DomNoManagedSave
+	DomAutostart
+	DomNoAutostart
+	DomHasSnapshot
+	DomNoSnapshot
 )
 
 type Domain struct {

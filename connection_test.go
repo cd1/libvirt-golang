@@ -5,11 +5,13 @@ import (
 	"testing"
 )
 
-const QEMU_URI = "qemu:///system"
-const TEST_URI = "test:///default"
+const (
+	QEMUSystemURI  = "qemu:///system"
+	TestDefaultURI = "test:///default"
+)
 
 func openTestConnection(t testing.TB) Connection {
-	conn, err := Open(QEMU_URI)
+	conn, err := Open(QEMUSystemURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,7 +24,7 @@ func TestOpen(t *testing.T) {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
-	conn, err := Open(QEMU_URI)
+	conn, err := Open(QEMUSystemURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +46,7 @@ func TestOpenReadOnly(t *testing.T) {
 		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
 
-	conn, err := OpenReadOnly(QEMU_URI)
+	conn, err := OpenReadOnly(QEMUSystemURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,8 +156,8 @@ func TestURI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte(uri), []byte(QEMU_URI)) {
-		t.Errorf("libvirt URI should be the same used to open the connection; want=%s, got=%s", QEMU_URI, uri)
+	if !bytes.Equal([]byte(uri), []byte(QEMUSystemURI)) {
+		t.Errorf("libvirt URI should be the same used to open the connection; want=%s, got=%s", QEMUSystemURI, uri)
 	}
 }
 
@@ -214,7 +216,7 @@ func TestListDomains(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	domains, err := conn.ListDomains(ALL_DOMAINS)
+	domains, err := conn.ListDomains(DomAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +230,7 @@ func TestListDomains(t *testing.T) {
 
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(QEMU_URI)
+		conn, err := Open(QEMUSystemURI)
 		if err != nil {
 			b.Error(err)
 		}
@@ -241,7 +243,7 @@ func BenchmarkConnection(b *testing.B) {
 
 func BenchmarkTestConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(TEST_URI)
+		conn, err := Open(TestDefaultURI)
 		if err != nil {
 			b.Error(err)
 		}
