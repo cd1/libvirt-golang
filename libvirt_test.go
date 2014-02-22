@@ -145,11 +145,11 @@ func TestType(t *testing.T) {
 	}
 }
 
-func TestUri(t *testing.T) {
+func TestURI(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	uri, err := conn.Uri()
+	uri, err := conn.URI()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,15 +174,15 @@ func TestRef(t *testing.T) {
 	}
 }
 
-func TestCpuModelNames(t *testing.T) {
+func TestCPUModelNames(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	if _, err := conn.CpuModelNames("xxx"); err == nil {
+	if _, err := conn.CPUModelNames("xxx"); err == nil {
 		t.Error("an error was not returned when getting CPU model names from invalid arch")
 	}
 
-	models, err := conn.CpuModelNames("x86_64")
+	models, err := conn.CPUModelNames("x86_64")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,15 +192,15 @@ func TestCpuModelNames(t *testing.T) {
 	}
 }
 
-func TestMaxVcpus(t *testing.T) {
+func TestMaxVCPUs(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	if _, err := conn.MaxVcpus("xxx"); err == nil {
+	if _, err := conn.MaxVCPUs("xxx"); err == nil {
 		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
 	}
 
-	vcpus, err := conn.MaxVcpus("kvm")
+	vcpus, err := conn.MaxVCPUs("kvm")
 	if err != nil {
 		t.Fatal(err)
 	}

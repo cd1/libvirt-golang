@@ -207,19 +207,19 @@ func (conn Connection) Type() (string, *Error) {
 	return C.GoString(cType), nil
 }
 
-// Uri returns the URI (name) of the hypervisor connection. Normally this is
+// URI returns the URI (name) of the hypervisor connection. Normally this is
 // the same as or similar to the string passed to the Open/OpenReadOnly call,
 // but the driver may make the URI canonical. If uri == "" was passed to Open,
 // then the driver will return a non-NULL URI which can be used to connect tos
 // the same hypervisor later.
-func (conn Connection) Uri() (string, *Error) {
-	cUri := C.virConnectGetURI(conn.virConnect)
-	if cUri == nil {
+func (conn Connection) URI() (string, *Error) {
+	cURI := C.virConnectGetURI(conn.virConnect)
+	if cURI == nil {
 		return "", LastError()
 	}
-	defer C.free(unsafe.Pointer(cUri))
+	defer C.free(unsafe.Pointer(cURI))
 
-	return C.GoString(cUri), nil
+	return C.GoString(cURI), nil
 }
 
 // Ref increments the reference count on the connection. For each additional
@@ -236,9 +236,9 @@ func (conn Connection) Ref() *Error {
 	}
 }
 
-// CpuModelNames gets the list of supported CPU models for a
+// CPUModelNames gets the list of supported CPU models for a
 // specific architecture.
-func (conn Connection) CpuModelNames(arch string) ([]string, *Error) {
+func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
 	var cModels **C.char
 	cArch := C.CString(arch)
 	defer C.free(unsafe.Pointer(cArch))
@@ -261,10 +261,10 @@ func (conn Connection) CpuModelNames(arch string) ([]string, *Error) {
 	return models, nil
 }
 
-// MaxVcpus provides the maximum number of virtual CPUs supported for a guest
+// MaxVCPUs provides the maximum number of virtual CPUs supported for a guest
 // VM of a specific type. The 'type' parameter here corresponds to the 'type'
 // attribute in the <domain> element of the XML
-func (conn Connection) MaxVcpus(typ string) (int, *Error) {
+func (conn Connection) MaxVCPUs(typ string) (int, *Error) {
 	cTyp := C.CString(typ)
 	defer C.free(unsafe.Pointer(cTyp))
 
