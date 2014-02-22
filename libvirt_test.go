@@ -8,6 +8,15 @@ import (
 const QEMU_URI = "qemu:///system"
 const TEST_URI = "test:///default"
 
+func openTestConnection(t testing.TB) Connection {
+	conn, err := Open(QEMU_URI)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return conn
+}
+
 func TestOpen(t *testing.T) {
 	if _, err := Open("xxx"); err == nil {
 		t.Error("an error was not returned when connecting to a bad URI")
@@ -53,10 +62,7 @@ func TestOpenReadOnly(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	version, err := conn.Version()
@@ -70,10 +76,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestLibVersion(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	version, err := conn.LibVersion()
@@ -87,10 +90,7 @@ func TestLibVersion(t *testing.T) {
 }
 
 func TestCapabilities(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	cap, err := conn.Capabilities()
@@ -104,10 +104,7 @@ func TestCapabilities(t *testing.T) {
 }
 
 func TestHostname(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	hostname, err := conn.Hostname()
@@ -121,10 +118,7 @@ func TestHostname(t *testing.T) {
 }
 
 func TestSysinfo(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	sysinfo, err := conn.Sysinfo()
@@ -138,10 +132,7 @@ func TestSysinfo(t *testing.T) {
 }
 
 func TestType(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	typ, err := conn.Type()
@@ -155,10 +146,7 @@ func TestType(t *testing.T) {
 }
 
 func TestUri(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	uri, err := conn.Uri()
@@ -172,10 +160,7 @@ func TestUri(t *testing.T) {
 }
 
 func TestRef(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 
 	if err := conn.Ref(); err != nil {
 		t.Fatal(err)
@@ -190,13 +175,10 @@ func TestRef(t *testing.T) {
 }
 
 func TestCpuModelNames(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
-	if _, err = conn.CpuModelNames("xxx"); err == nil {
+	if _, err := conn.CpuModelNames("xxx"); err == nil {
 		t.Error("an error was not returned when getting CPU model names from invalid arch")
 	}
 
@@ -211,13 +193,10 @@ func TestCpuModelNames(t *testing.T) {
 }
 
 func TestMaxVcpus(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
-	if _, err = conn.MaxVcpus("xxx"); err == nil {
+	if _, err := conn.MaxVcpus("xxx"); err == nil {
 		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
 	}
 
@@ -232,10 +211,7 @@ func TestMaxVcpus(t *testing.T) {
 }
 
 func TestListDomains(t *testing.T) {
-	conn, err := Open(QEMU_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := openTestConnection(t)
 	defer conn.Close()
 
 	domains, err := conn.ListDomains(ALL_DOMAINS)
