@@ -163,6 +163,7 @@ const (
 	DOM_CGROUP
 	DOM_ACCESS
 	DOM_SYSTEMD
+	DOM_BHYVE
 )
 
 type ErrorLevel uint
