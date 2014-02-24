@@ -229,11 +229,11 @@ func (conn Connection) URI() (string, *Error) {
 func (conn Connection) Ref() *Error {
 	cRet := C.virConnectRef(conn.virConnect)
 	ret := int(cRet)
-	if ret == 0 {
-		return nil
-	} else {
+	if ret == -1 {
 		return LastError()
 	}
+
+	return nil
 }
 
 // CPUModelNames gets the list of supported CPU models for a
