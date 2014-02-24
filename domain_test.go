@@ -74,3 +74,93 @@ func TestDomainIsUpdated(t *testing.T) {
 
 	_ = dom.IsUpdated()
 }
+
+func TestDomainOSType(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	os, err := dom.OSType()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(os) == 0 {
+		t.Error("empty domain OS type")
+	}
+}
+
+func TestDomainName(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	name := dom.Name()
+
+	if len(name) == 0 {
+		t.Error("empty domain name")
+	}
+}
+
+func TestDomainHostname(t *testing.T) {
+	// Hostname is not supported by the "QEMU" driver
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	if _, err := dom.Hostname(); err == nil {
+		t.Error("Hostname should not be supported by the \"QEMU\" driver")
+	}
+}
+
+func TestDomainUUID(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	uuid, err := dom.UUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(uuid) == 0 {
+		t.Error("empty domain UUID")
+	}
+}
+
+func TestDomainXML(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	if _, err := dom.XML(99); err == nil {
+		t.Error("an error was not returned when using an invalid flag")
+	}
+
+	xml, err := dom.XML(DomXMLDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(xml) == 0 {
+		t.Error("empty domain XML")
+	}
+}
+
+func TestDomainMetadata(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	if _, err := dom.Metadata(99, "", DomAffectCurrent); err == nil {
+		t.Error("an error was not returned when using an invalid type")
+	}
+
+	if _, err := dom.Metadata(DomMetaElement, "xxx", DomAffectCurrent); err == nil {
+		t.Error("an error was not returned when using a non-existing metadata tag")
+	}
+
+	if _, err := dom.Metadata(DomMetaElement, "", 99); err == nil {
+		t.Error("an error was not returned when using an invalid impact config")
+	}
+}

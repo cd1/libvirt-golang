@@ -5,6 +5,7 @@ package libvirt
 import "C"
 import (
 	"log"
+	"unsafe"
 )
 
 type DomainFlag uint
@@ -25,6 +26,32 @@ const (
 	DomHasSnapshot
 	DomNoSnapshot
 	DomAll = 0
+)
+
+type DomainMetadataType uint
+
+const (
+	DomMetaDescription DomainMetadataType = iota
+	DomMetaTitle
+	DomMetaElement
+)
+
+type DomainModificationImpact uint
+
+const (
+	DomAffectCurrent = iota
+	DomAffectLive
+	DomAffectConfig
+)
+
+type DomainXMLFlag uint
+
+const (
+	DomXMLSecure DomainXMLFlag = (1 << iota)
+	DomXMLInactive
+	DomXMLUpdateCPU
+	DomXMLMigratable
+	DomXMLDefault = 0
 )
 
 type Domain struct {
@@ -138,4 +165,74 @@ func (dom Domain) IsUpdated() bool {
 	}
 
 	return (ret == 1)
+}
+
+// OSType gets the type of domain operation system.
+func (dom Domain) OSType() (string, *Error) {
+	os := C.virDomainGetOSType(dom.virDomain)
+	if os == nil {
+		return "", LastError()
+	}
+	defer C.free(unsafe.Pointer(os))
+
+	return C.GoString(os), nil
+}
+
+// Name gets the public name for that domain.
+func (dom Domain) Name() string {
+	cName := C.virDomainGetName(dom.virDomain)
+	return C.GoString(cName)
+}
+
+// Hostname gets the hostname for that domain.
+func (dom Domain) Hostname() (string, *Error) {
+	cHostname := C.virDomainGetHostname(dom.virDomain, 0)
+	if cHostname == nil {
+		return "", LastError()
+	}
+	defer C.free(unsafe.Pointer(cHostname))
+
+	return C.GoString(cHostname), nil
+}
+
+// UUID gets the UUID for a domain as string. For more information about UUID
+// see RFC4122.
+func (dom Domain) UUID() (string, *Error) {
+	cUUID := (*C.char)(C.malloc(C.size_t(C.VIR_UUID_STRING_BUFLEN)))
+	defer C.free(unsafe.Pointer(cUUID))
+
+	cRet := C.virDomainGetUUIDString(dom.virDomain, cUUID)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return "", LastError()
+	}
+
+	return C.GoString(cUUID), nil
+}
+
+// XML provides an XML description of the domain. The description may be reused
+// later to relaunch the domain with CreateXML().
+func (dom Domain) XML(typ DomainXMLFlag) (string, *Error) {
+	cXML := C.virDomainGetXMLDesc(dom.virDomain, C.uint(typ))
+	if cXML == nil {
+		return "", LastError()
+	}
+	defer C.free(unsafe.Pointer(cXML))
+
+	return C.GoString(cXML), nil
+}
+
+// Metadata retrieves the appropriate domain element given by "type".
+func (dom Domain) Metadata(typ DomainMetadataType, xmlns string, impact DomainModificationImpact) (string, *Error) {
+	cXMLNS := C.CString(xmlns)
+	defer C.free(unsafe.Pointer(cXMLNS))
+
+	cMetadata := C.virDomainGetMetadata(dom.virDomain, C.int(typ), cXMLNS, C.uint(impact))
+	if cMetadata == nil {
+		return "", LastError()
+	}
+	defer C.free(unsafe.Pointer(cMetadata))
+
+	return C.GoString(cMetadata), nil
 }
