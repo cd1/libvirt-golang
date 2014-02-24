@@ -1,7 +1,6 @@
 package libvirt
 
 import (
-	"bytes"
 	"testing"
 )
 
@@ -156,7 +155,7 @@ func TestURI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte(uri), []byte(QEMUSystemURI)) {
+	if uri != QEMUSystemURI {
 		t.Errorf("libvirt URI should be the same used to open the connection; got=%s, want=%s", uri, QEMUSystemURI)
 	}
 }
