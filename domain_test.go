@@ -113,6 +113,21 @@ func TestDomainHostname(t *testing.T) {
 	}
 }
 
+func TestDomainID(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	id, err := dom.ID()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if id < 0 {
+		t.Error("domain ID should be a positive number")
+	}
+}
+
 func TestDomainUUID(t *testing.T) {
 	dom, conn := openTestDomain(t)
 	defer conn.Close()

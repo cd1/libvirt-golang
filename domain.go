@@ -195,6 +195,18 @@ func (dom Domain) Hostname() (string, *Error) {
 	return C.GoString(cHostname), nil
 }
 
+// ID gets the hypervisor ID number for the domain.
+func (dom Domain) ID() (uint, *Error) {
+	cID := C.virDomainGetID(dom.virDomain)
+	id := uint(cID)
+
+	if id == ^uint(0) { // Go: ^uint(0) == C: (unsigned int) -1
+		return 0, LastError()
+	}
+
+	return id, nil
+}
+
 // UUID gets the UUID for a domain as string. For more information about UUID
 // see RFC4122.
 func (dom Domain) UUID() (string, *Error) {
