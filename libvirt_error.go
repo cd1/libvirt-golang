@@ -187,9 +187,9 @@ func (err *Error) Error() string {
 	return fmt.Sprintf("%s [%d]", err.Message, err.Code)
 }
 
-// newError creates an error based on a native libvirt error. If the libvirt
+// NewError creates an error based on a native libvirt error. If the libvirt
 // error pointer is nil, returns nil.
-func newError(virError C.virErrorPtr) *Error {
+func NewError(virError C.virErrorPtr) *Error {
 	if virError == nil {
 		return nil
 	}
@@ -207,14 +207,14 @@ func newError(virError C.virErrorPtr) *Error {
 	}
 }
 
-// lastError provides a pointer to the last error caught at the library level.
+// LastError provides a pointer to the last error caught at the library level.
 // The error object is kept in thread local storage, so separate threads can
 // safely access this concurrently.
-func lastError() *Error {
+func LastError() *Error {
 	cError := C.virGetLastError()
 	if cError == nil {
 		log.Println("LastError() did not return an error")
 	}
 
-	return newError(cError)
+	return NewError(cError)
 }

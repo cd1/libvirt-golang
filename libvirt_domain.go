@@ -35,7 +35,7 @@ func (dom Domain) Free() *Error {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return lastError()
+		return LastError()
 	} else {
 		return nil
 	}

@@ -22,7 +22,7 @@ func Open(uri string) (Connection, *Error) {
 
 	cConn := C.virConnectOpen(cUri)
 	if cConn == nil {
-		return Connection{}, lastError()
+		return Connection{}, LastError()
 	}
 
 	return Connection{cConn}, nil
@@ -36,7 +36,7 @@ func OpenReadOnly(uri string) (Connection, *Error) {
 
 	cConn := C.virConnectOpenReadOnly(cUri)
 	if cConn == nil {
-		return Connection{}, lastError()
+		return Connection{}, LastError()
 	}
 
 	return Connection{cConn}, nil
@@ -61,7 +61,7 @@ func (conn Connection) Close() (int, *Error) {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, lastError()
+		return 0, LastError()
 	}
 
 	return ret, nil
@@ -74,7 +74,7 @@ func (conn Connection) Version() (uint64, *Error) {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, lastError()
+		return 0, LastError()
 	}
 
 	return uint64(cVersion), nil
@@ -88,7 +88,7 @@ func (conn Connection) LibVersion() (uint64, *Error) {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, lastError()
+		return 0, LastError()
 	}
 
 	return uint64(cVersion), nil
@@ -106,7 +106,7 @@ func (conn Connection) IsAlive() bool {
 	}
 
 	if ret == -1 {
-		if err := lastError(); err != nil {
+		if err := LastError(); err != nil {
 			log.Println(err)
 		}
 	}
@@ -126,7 +126,7 @@ func (conn Connection) IsEncrypted() bool {
 	}
 
 	if ret == -1 {
-		if err := lastError(); err != nil {
+		if err := LastError(); err != nil {
 			log.Println(err)
 		}
 	}
@@ -146,7 +146,7 @@ func (conn Connection) IsSecure() bool {
 	}
 
 	if ret == -1 {
-		if err := lastError(); err != nil {
+		if err := LastError(); err != nil {
 			log.Println(err)
 		}
 	}
@@ -158,7 +158,7 @@ func (conn Connection) IsSecure() bool {
 func (conn Connection) Capabilities() (string, *Error) {
 	cCap := C.virConnectGetCapabilities(conn.virConnect)
 	if cCap == nil {
-		return "", lastError()
+		return "", LastError()
 	}
 	defer C.free(unsafe.Pointer(cCap))
 
@@ -172,7 +172,7 @@ func (conn Connection) Capabilities() (string, *Error) {
 func (conn Connection) Hostname() (string, *Error) {
 	cHostname := C.virConnectGetHostname(conn.virConnect)
 	if cHostname == nil {
-		return "", lastError()
+		return "", LastError()
 	}
 	defer C.free(unsafe.Pointer(cHostname))
 
@@ -186,7 +186,7 @@ func (conn Connection) Hostname() (string, *Error) {
 func (conn Connection) Sysinfo() (string, *Error) {
 	cSysinfo := C.virConnectGetSysinfo(conn.virConnect, 0)
 	if cSysinfo == nil {
-		return "", lastError()
+		return "", LastError()
 	}
 	defer C.free(unsafe.Pointer(cSysinfo))
 
@@ -201,7 +201,7 @@ func (conn Connection) Sysinfo() (string, *Error) {
 func (conn Connection) Type() (string, *Error) {
 	cType := C.virConnectGetType(conn.virConnect)
 	if cType == nil {
-		return "", lastError()
+		return "", LastError()
 	}
 
 	return C.GoString(cType), nil
@@ -215,7 +215,7 @@ func (conn Connection) Type() (string, *Error) {
 func (conn Connection) Uri() (string, *Error) {
 	cUri := C.virConnectGetURI(conn.virConnect)
 	if cUri == nil {
-		return "", lastError()
+		return "", LastError()
 	}
 	defer C.free(unsafe.Pointer(cUri))
 
@@ -232,7 +232,7 @@ func (conn Connection) Ref() *Error {
 	if ret == 0 {
 		return nil
 	} else {
-		return lastError()
+		return LastError()
 	}
 }
 
@@ -248,7 +248,7 @@ func (conn Connection) CpuModelNames(arch string) ([]string, *Error) {
 	defer C.free(unsafe.Pointer(cModels))
 
 	if ret == -1 {
-		return nil, lastError()
+		return nil, LastError()
 	}
 
 	cBackedModels := (*[1 << 30]*C.char)(unsafe.Pointer(cModels))[:ret:ret]
@@ -272,7 +272,7 @@ func (conn Connection) MaxVcpus(typ string) (int, *Error) {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return 0, lastError()
+		return 0, LastError()
 	}
 
 	return ret, nil
@@ -286,7 +286,7 @@ func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
 	ret := int(cRet)
 
 	if ret == -1 {
-		return nil, lastError()
+		return nil, LastError()
 	}
 	defer C.free(unsafe.Pointer(cDomains))
 
