@@ -330,3 +330,43 @@ func (conn Connection) DefineDomain(xml string) (Domain, *Error) {
 
 	return Domain{cDomain}, nil
 }
+
+// LookupDomainByID tries to find a domain based on the hypervisor ID number.
+// Note that this won't work for inactive domains which have an ID of -1, in
+// that case a lookup based on the Name or UUID need to be done instead.
+func (conn Connection) LookupDomainByID(id uint) (Domain, *Error) {
+	cDomain := C.virDomainLookupByID(conn.virConnect, C.int(id))
+	if cDomain == nil {
+		return Domain{}, LastError()
+	}
+
+	return Domain{cDomain}, nil
+}
+
+// LookupDomainByName tries to lookup a domain on the given hypervisor based on
+// its name.
+func (conn Connection) LookupDomainByName(name string) (Domain, *Error) {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+
+	cDomain := C.virDomainLookupByName(conn.virConnect, cName)
+	if cDomain == nil {
+		return Domain{}, LastError()
+	}
+
+	return Domain{cDomain}, nil
+}
+
+// LookupDomainByUUID tries to lookup a domain on the given hypervisor based on
+// its UUID.
+func (conn Connection) LookupDomainByUUID(uuid string) (Domain, *Error) {
+	cUUID := C.CString(uuid)
+	defer C.free(unsafe.Pointer(cUUID))
+
+	cDomain := C.virDomainLookupByUUIDString(conn.virConnect, cUUID)
+	if cDomain == nil {
+		return Domain{}, LastError()
+	}
+
+	return Domain{cDomain}, nil
+}

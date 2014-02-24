@@ -284,6 +284,81 @@ func TestDefineAndUndefineDomain(t *testing.T) {
 	}
 }
 
+func TestLookupDomainByID(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	if _, err := conn.LookupDomainByID(99); err == nil {
+		t.Error("an error was not returned when looking up a non-existing domain ID")
+	}
+
+	expectedID, err := dom.ID()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dom, err = conn.LookupDomainByID(expectedID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Free()
+
+	id, err := dom.ID()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if id != expectedID {
+		t.Errorf("looked up domain with unexpected id; got=%d, want=%d", id, expectedID)
+	}
+}
+
+func TestLookupDomainByName(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	if _, err := conn.LookupDomainByName("xxx"); err == nil {
+		t.Error("an error was not returned when looking up a non-existing domain name")
+	}
+
+	dom, err := conn.LookupDomainByName(DomTestName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Free()
+
+	if name := dom.Name(); name != DomTestName {
+		t.Errorf("looked up domain with unexpected name; got=%s, want=%s", name, DomTestName)
+	}
+}
+
+func TestLookupDomainByUUID(t *testing.T) {
+	dom, conn := openTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+
+	if _, err := conn.LookupDomainByUUID("xxx"); err == nil {
+		t.Error("an error was not returned when looking up a non-existing domain UUID")
+	}
+
+	dom, err := conn.LookupDomainByUUID(DomTestUUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Free()
+
+	uuid, err := dom.UUID()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if uuid != DomTestUUID {
+		t.Errorf("looked up domain with unexpected UUID; got=%s, want=%s", uuid, DomTestUUID)
+	}
+}
+
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(QEMUSystemURI)
