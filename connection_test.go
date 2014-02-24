@@ -1,6 +1,7 @@
 package libvirt
 
 import (
+	"io/ioutil"
 	"testing"
 )
 
@@ -227,6 +228,62 @@ func TestListDomains(t *testing.T) {
 	}
 }
 
+func TestCreateAndDestroyDomain(t *testing.T) {
+	conn := openTestConnection(t)
+	defer conn.Close()
+
+	if _, err := conn.CreateDomain("", DomCreateDefault); err == nil {
+		t.Error("an error was not returned when creating a domain with empty XML description")
+	}
+
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+
+	if _, err := conn.CreateDomain(string(xml), DomainCreateFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid create flag")
+	}
+
+	dom, err := conn.CreateDomain(string(xml), DomCreateDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Free()
+
+	if err := dom.Destroy(DomDestroyDefault); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDefineAndUndefineDomain(t *testing.T) {
+	conn := openTestConnection(t)
+	defer conn.Close()
+
+	if _, err := conn.DefineDomain(""); err == nil {
+		t.Error("an error was not returned when defining a domain with empty XML description")
+	}
+
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+
+	dom, err := conn.DefineDomain(string(xml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Free()
+
+	if err := dom.Undefine(DomainUndefineFlag(99)); err == nil {
+		t.Error("an error was not return when using an invalid undefine flag")
+	}
+
+	if err := dom.Undefine(DomUndefineDefault); err != nil {
+		t.Error(err)
+	}
+}
+
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(QEMUSystemURI)
@@ -250,5 +307,71 @@ func BenchmarkTestConnection(b *testing.B) {
 		if _, err := conn.Close(); err != nil {
 			b.Error(err)
 		}
+	}
+}
+
+func BenchmarkCreateDomain(b *testing.B) {
+	conn, err := Open(QEMUSystemURI)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		b.Fatal(ioerr)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		dom, err := conn.CreateDomain(string(xml), DomCreateDefault)
+		if err != nil {
+			b.Error(err)
+		}
+
+		if err := dom.Destroy(DomDestroyDefault); err != nil {
+			b.Error(err)
+		}
+
+		if err := dom.Free(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+
+	if _, err := conn.Close(); err != nil {
+		b.Error(err)
+	}
+}
+
+func BenchmarkDefineDomain(b *testing.B) {
+	conn, err := Open(QEMUSystemURI)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		b.Fatal(ioerr)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		dom, err := conn.DefineDomain(string(xml))
+		if err != nil {
+			b.Error(err)
+		}
+
+		if err := dom.Undefine(DomUndefineDefault); err != nil {
+			b.Error(err)
+		}
+
+		if err := dom.Free(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+
+	if _, err := conn.Close(); err != nil {
+		b.Error(err)
 	}
 }

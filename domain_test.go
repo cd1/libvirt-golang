@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+const DomTestXMLFile = "res/dom-test.xml"
+
 func openTestDomain(t testing.TB) (Domain, Connection) {
 	conn := openTestConnection(t)
 	domains, err := conn.ListDomains(DomAll)

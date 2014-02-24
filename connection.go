@@ -298,3 +298,35 @@ func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
 
 	return domains, nil
 }
+
+// CreateDomain launches a new guest domain, based on an XML description
+// similar to the one returned by Domain.XML() This function may require
+// privileged access to the hypervisor. The domain is not persistent, so its
+// definition will disappear when it is destroyed, or if the host is restarted
+// (see Domain.Define() to define persistent domains).
+func (conn Connection) CreateDomain(xml string, flags DomainCreateFlag) (Domain, *Error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	cDomain := C.virDomainCreateXML(conn.virConnect, cXML, C.uint(flags))
+	if cDomain == nil {
+		return Domain{}, LastError()
+	}
+
+	return Domain{cDomain}, nil
+}
+
+// DefineDomain defines a domain, but does not start it. This definition is
+// persistent, until explicitly undefined with Domain.Undefine(). A previous
+// definition for this domain would be overridden if it already exists.
+func (conn Connection) DefineDomain(xml string) (Domain, *Error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	cDomain := C.virDomainDefineXML(conn.virConnect, cXML)
+	if cDomain == nil {
+		return Domain{}, LastError()
+	}
+
+	return Domain{cDomain}, nil
+}

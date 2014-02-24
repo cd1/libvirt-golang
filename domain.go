@@ -54,6 +54,31 @@ const (
 	DomXMLDefault = 0
 )
 
+type DomainCreateFlag uint
+
+const (
+	DomCreateStartPaused DomainCreateFlag = (1 << iota)
+	DomCreateStartAutodestroy
+	DomCreateStartBypassCache
+	DomCreateStartForceBoot
+	DomCreateDefault = 0
+)
+
+type DomainDestroyFlag uint
+
+const (
+	DomDestroyGraceful DomainDestroyFlag = (1 << iota)
+	DomDestroyDefault                    = 0
+)
+
+type DomainUndefineFlag uint
+
+const (
+	DomUndefineManagedSave DomainUndefineFlag = (1 << iota)
+	DomUndefineSnapshotsMetadata
+	DomUndefineDefault = 0
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -247,4 +272,46 @@ func (dom Domain) Metadata(typ DomainMetadataType, xmlns string, impact DomainMo
 	defer C.free(unsafe.Pointer(cMetadata))
 
 	return C.GoString(cMetadata), nil
+}
+
+// Destroy destroys the domain object. The running instance is shutdown if not
+// down already and all resources used by it are given back to the hypervisor.
+// This does not free the associated virDomainPtr object. This function may
+// require privileged access.
+func (dom Domain) Destroy(flags DomainDestroyFlag) *Error {
+	cRet := C.virDomainDestroyFlags(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// Create launches a defined domain. If the call succeeds the domain moves from
+// the defined to the running domains pools.
+func (dom Domain) Create(flags DomainCreateFlag) *Error {
+	cRet := C.virDomainCreateWithFlags(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// Undefine undefines a domain. If the domain is running, it's converted to
+// transient domain, without stopping it. If the domain is inactive, the domain
+// configuration is removed.
+func (dom Domain) Undefine(flags DomainUndefineFlag) *Error {
+	cRet := C.virDomainUndefineFlags(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
 }
