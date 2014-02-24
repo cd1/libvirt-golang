@@ -157,7 +157,7 @@ func TestURI(t *testing.T) {
 	}
 
 	if !bytes.Equal([]byte(uri), []byte(QEMUSystemURI)) {
-		t.Errorf("libvirt URI should be the same used to open the connection; want=%s, got=%s", QEMUSystemURI, uri)
+		t.Errorf("libvirt URI should be the same used to open the connection; got=%s, want=%s", uri, QEMUSystemURI)
 	}
 }
 
