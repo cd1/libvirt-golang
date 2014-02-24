@@ -7,8 +7,7 @@ import "C"
 type DomainFlag uint
 
 const (
-	DomAll DomainFlag = (0 << iota)
-	DomActive
+	DomActive DomainFlag = (1 << iota)
 	DomInactive
 	DomPersistent
 	DomTransient
@@ -22,6 +21,7 @@ const (
 	DomNoAutostart
 	DomHasSnapshot
 	DomNoSnapshot
+	DomAll = 0
 )
 
 type Domain struct {
