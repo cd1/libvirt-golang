@@ -61,6 +61,10 @@ func TestOpenReadOnly(t *testing.T) {
 	if !conn.IsSecure() {
 		t.Error("the libvirt connection is not secure")
 	}
+
+	if _, err := conn.DefineDomain(""); err == nil {
+		t.Error("a readonly libvirt connection should not allow defining domains")
+	}
 }
 
 func TestVersion(t *testing.T) {
