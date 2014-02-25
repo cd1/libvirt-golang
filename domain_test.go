@@ -1,32 +1,32 @@
 package libvirt
 
 import (
+	"io/ioutil"
 	"testing"
 )
 
-const DomTestXMLFile = "res/dom-test.xml"
+const (
+	DomTestMetadataNamespace = "code.google.com/p/libvirt-golang"
+	DomTestName              = "golang-test"
+	DomTestOSType            = "hvm"
+	DomTestUUID              = "9652e5cd-15f1-49ad-af73-63a502a9e2b8"
+	DomTestXMLFile           = "res/dom-test.xml"
+)
 
 func openTestDomain(t testing.TB) (Domain, Connection) {
 	conn := openTestConnection(t)
-	domains, err := conn.ListDomains(DomAll)
+
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+
+	dom, err := conn.CreateDomain(string(xml), DomCreateStartAutodestroy)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(domains) == 0 {
-		t.Skip("there is no available domain to test")
-	}
-
-	// free every domain except the first one, which will be returned
-	for i, d := range domains {
-		if i > 0 {
-			if err := d.Free(); err != nil {
-				t.Error(err)
-			}
-		}
-	}
-
-	return domains[0], conn
+	return dom, conn
 }
 
 func TestDomainAutostart(t *testing.T) {
@@ -34,7 +34,9 @@ func TestDomainAutostart(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	_ = dom.Autostart()
+	if dom.Autostart() {
+		t.Error("test domain should not have autostart enabled")
+	}
 }
 
 func TestDomainHasCurrentSnapshot(t *testing.T) {
@@ -42,7 +44,9 @@ func TestDomainHasCurrentSnapshot(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	_ = dom.HasCurrentSnapshot()
+	if dom.HasCurrentSnapshot() {
+		t.Error("test domain should not have current snapshot")
+	}
 }
 
 func TestDomainHasManagedSaveImage(t *testing.T) {
@@ -50,7 +54,9 @@ func TestDomainHasManagedSaveImage(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	_ = dom.HasManagedSaveImage()
+	if dom.HasManagedSaveImage() {
+		t.Error("test domain should not have managed save image")
+	}
 }
 
 func TestDomainIsActive(t *testing.T) {
@@ -58,7 +64,9 @@ func TestDomainIsActive(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	_ = dom.IsActive()
+	if !dom.IsActive() {
+		t.Error("test domain should be active")
+	}
 }
 
 func TestDomainIsPersistent(t *testing.T) {
@@ -66,7 +74,9 @@ func TestDomainIsPersistent(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	_ = dom.IsPersistent()
+	if dom.IsPersistent() {
+		t.Error("test domain should be transient")
+	}
 }
 
 func TestDomainIsUpdated(t *testing.T) {
@@ -74,7 +84,9 @@ func TestDomainIsUpdated(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	_ = dom.IsUpdated()
+	if dom.IsUpdated() {
+		t.Error("test domain should not have been updated")
+	}
 }
 
 func TestDomainOSType(t *testing.T) {
@@ -87,8 +99,8 @@ func TestDomainOSType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(os) == 0 {
-		t.Error("empty domain OS type")
+	if os != DomTestOSType {
+		t.Errorf("wrong test domain OS type; got=%s, want=%", os, DomTestOSType)
 	}
 }
 
@@ -99,8 +111,8 @@ func TestDomainName(t *testing.T) {
 
 	name := dom.Name()
 
-	if len(name) == 0 {
-		t.Error("empty domain name")
+	if name != DomTestName {
+		t.Errorf("wrong test domain name; got=%s, want=%s", name, DomTestName)
 	}
 }
 
@@ -140,8 +152,8 @@ func TestDomainUUID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(uuid) == 0 {
-		t.Error("empty domain UUID")
+	if uuid != DomTestUUID {
+		t.Errorf("wrong test domain UUID; got=%s, want=%s", uuid, DomTestUUID)
 	}
 }
 
@@ -179,5 +191,14 @@ func TestDomainMetadata(t *testing.T) {
 
 	if _, err := dom.Metadata(DomMetaElement, "", 99); err == nil {
 		t.Error("an error was not returned when using an invalid impact config")
+	}
+
+	metadata, err := dom.Metadata(DomMetaElement, DomTestMetadataNamespace, DomAffectCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(metadata) == 0 {
+		t.Error("empty test domain metadata")
 	}
 }
