@@ -79,6 +79,16 @@ const (
 	DomUndefineDefault = 0
 )
 
+type DomainRebootFlag uint
+
+const (
+	DomRebootACPIPowerBtn DomainRebootFlag = (1 << iota)
+	DomRebootGuestAgent
+	DomRebootInitctl
+	DomRebootSignal
+	DomRebootDefault = 0
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -307,6 +317,58 @@ func (dom Domain) Create(flags DomainCreateFlag) *Error {
 // configuration is removed.
 func (dom Domain) Undefine(flags DomainUndefineFlag) *Error {
 	cRet := C.virDomainUndefineFlags(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// Reboot reboots a domain, the domain object is still usable thereafter, but
+// the domain OS is being stopped for a restart. Note that the guest OS may
+// ignore the request. Additionally, the hypervisor may check and support the
+// domain 'on_reboot' XML setting resulting in a domain that shuts down instead
+// of rebooting.
+func (dom Domain) Reboot(flags DomainRebootFlag) *Error {
+	cRet := C.virDomainReboot(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// Reset resets a domain immediately without any guest OS shutdown. Reset
+// emulates the power reset button on a machine, where all hardware sees the
+// RST line set and reinitializes internal state.
+// Note that there is a risk of data loss caused by reset without any guest
+// OS shutdown.
+func (dom Domain) Reset() *Error {
+	cRet := C.virDomainReset(dom.virDomain, 0)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// Shutdown shuts down a domain, the domain object is still usable thereafter,
+// but the domain OS is being stopped. Note that the guest OS may ignore the
+// request. Additionally, the hypervisor may check and support the domain
+// 'on_poweroff' XML setting resulting in a domain that reboots instead of
+// shutting down. For guests that react to a shutdown request, the differences
+// from Destroy() are that the guests disk storage will be in a stable state
+// rather than having the (virtual) power cord pulled, and this command returns
+// as soon as the shutdown request is issued rather than blocking until the
+// guest is no longer running.
+func (dom Domain) Shutdown() *Error {
+	cRet := C.virDomainShutdown(dom.virDomain)
 	ret := int(cRet)
 
 	if ret == -1 {

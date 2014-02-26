@@ -232,3 +232,37 @@ func TestDomainMetadata(t *testing.T) {
 		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, DomTestMetadataContent)
 	}
 }
+
+func TestDomainReboot(t *testing.T) {
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	if err := dom.Reboot(DomainRebootFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid reboot flag")
+	}
+
+	if err := dom.Reboot(DomRebootDefault); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDomainReset(t *testing.T) {
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	if err := dom.Reset(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDomainShutdown(t *testing.T) {
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	if err := dom.Shutdown(); err != nil {
+		t.Error(err)
+	}
+}
