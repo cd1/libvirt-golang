@@ -89,6 +89,95 @@ const (
 	DomRebootDefault = 0
 )
 
+type DomainState uint
+
+const (
+	DomStateNone DomainState = iota
+	DomStateRunning
+	DomStateBlocked
+	DomStatePaused
+	DomStateShutdown
+	DomStateShutoff
+	DomStateCrashed
+	DomStatePMSuspended
+)
+
+type DomainNostateReason uint
+
+const (
+	DomNostateReasonUnknown DomainNostateReason = iota
+)
+
+type DomainRunningReason uint
+
+const (
+	DomRunningReasonUnknown DomainRunningReason = iota
+	DomRunningReasonBooted
+	DomRunningReasonMigrated
+	DomRunningReasonRestored
+	DomRunningReasonFromSnapshot
+	DomRunningReasonUnpaused
+	DomRunningReasonMigrationCancelled
+	DomRunningReasonSaveCancelled
+	DomRunningReasonWakeUp
+	DomRunningReasonCrashed
+)
+
+type DomainBlockedReason uint
+
+const (
+	DomBlockedReasonUnkwown DomainBlockedReason = iota
+)
+
+type DomainPausedReason uint
+
+const (
+	DomPausedReasonUnknown DomainPausedReason = iota
+	DomPausedReasonUser
+	DomPausedReasonMigration
+	DomPausedReasonSave
+	DomPausedReasonDump
+	DomPausedReasonIOError
+	DomPausedReasonWatchdog
+	DomPausedReasonFromSnapshot
+	DomPausedReasonShuttingDown
+	DomPausedReasonSnapshot
+	DomPausedReasonCrashed
+)
+
+type DomainShutdownReason uint
+
+const (
+	DomShutdownReasonUnknown DomainShutdownReason = iota
+	DomShutdownReasonUser
+)
+
+type DomainShutoffReason uint
+
+const (
+	DomShutoffReasonUnknown DomainShutoffReason = iota
+	DomShutoffReasonShutdown
+	DomShutoffReasonDestroyed
+	DomShutoffReasonCrashed
+	DomShutoffReasonMigrated
+	DomShutoffReasonSaved
+	DomShutoffReasonFailed
+	DomShutoffReasonFromSnapshot
+)
+
+type DomainCrashedReason uint
+
+const (
+	DomCrashedReasonUnknown DomainCrashedReason = iota
+	DomCrashedReasonPanicked
+)
+
+type DomainPMSuspendedReason uint
+
+const (
+	DomPMSuspendedReasonUnknown DomainPMSuspendedReason = iota
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -369,6 +458,51 @@ func (dom Domain) Reset() *Error {
 // guest is no longer running.
 func (dom Domain) Shutdown() *Error {
 	cRet := C.virDomainShutdown(dom.virDomain)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// State extracts domain state. Each state can be accompanied with a reason
+// (if known) which led to the state.
+func (dom Domain) State() (DomainState, int, *Error) {
+	var cState, cReason C.int
+	cRet := C.virDomainGetState(dom.virDomain, &cState, &cReason, 0)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, 0, LastError()
+	}
+
+	return DomainState(cState), int(cReason), nil
+}
+
+// Suspend suspends an active domain, the process is frozen without further
+// access to CPU resources and I/O but the memory used by the domain at the
+// hypervisor level will stay allocated. Use Resume() to reactivate the domain.
+// This function may require privileged access. Moreover, suspend may not be
+// supported if domain is in some special state like DomStatePMSuspended.
+func (dom Domain) Suspend() *Error {
+	cRet := C.virDomainSuspend(dom.virDomain)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// Resume resumes a suspended domain, the process is restarted from the state
+// where it was frozen by calling Suspend(). This function may require
+// privileged access. Moreover, resume may not be supported if domain is in
+// some special state like DomStatePMSuspended.
+func (dom Domain) Resume() *Error {
+	cRet := C.virDomainResume(dom.virDomain)
 	ret := int(cRet)
 
 	if ret == -1 {

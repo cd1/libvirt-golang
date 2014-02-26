@@ -266,3 +266,62 @@ func TestDomainShutdown(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestDomainSuspendResume(t *testing.T) {
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	state, reason, err := dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if state != DomStateRunning {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	}
+
+	if err = dom.Suspend(); err != nil {
+		t.Error(err)
+	}
+
+	state, reason, err = dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if state != DomStatePaused {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStatePaused)
+	}
+
+	if err = dom.Resume(); err != nil {
+		t.Error(err)
+	}
+
+	state, reason, err = dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if state != DomStateRunning {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	}
+}
+
+func BenchmarkSuspendResume(b *testing.B) {
+	dom, conn := createTestDomain(b, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := dom.Suspend(); err != nil {
+			b.Error(err)
+		}
+
+		if err := dom.Resume(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
