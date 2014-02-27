@@ -540,3 +540,18 @@ func (dom Domain) CoreDump(file string, flags DomainDumpFlag) *Error {
 
 	return nil
 }
+
+// Ref increments the reference count on the domain. For each additional call
+// to this method, there shall be a corresponding call to virDomainFree to
+// release the reference count, once the caller no longer needs the reference
+// to this object.
+func (dom Domain) Ref() *Error {
+	cRet := C.virDomainRef(dom.virDomain)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}

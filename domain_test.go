@@ -334,6 +334,27 @@ func TestDomainCoreDump(t *testing.T) {
 	}
 }
 
+func TestDomainRef(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+
+	if err := dom.Undefine(DomUndefineDefault); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := dom.Ref(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := dom.Free(); err != nil {
+		t.Error(err)
+	}
+
+	if err := dom.Free(); err != nil {
+		t.Error(err)
+	}
+}
+
 func BenchmarkSuspendResume(b *testing.B) {
 	dom, conn := createTestDomain(b, DomCreateStartAutodestroy)
 	defer conn.Close()
