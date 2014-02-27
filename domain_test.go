@@ -2,6 +2,7 @@ package libvirt
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -305,6 +306,31 @@ func TestDomainSuspendResume(t *testing.T) {
 
 	if state != DomStateRunning {
 		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	}
+}
+
+func TestDomainCoreDump(t *testing.T) {
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	if err := dom.CoreDump(".", DomDumpLive); err == nil {
+		t.Error("a core dump file should not be generated into a directory path")
+	}
+
+	dumpFile := DomTestName + ".core"
+	defer os.Remove(dumpFile)
+
+	if err := dom.CoreDump(dumpFile, DomainDumpFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid core dump flag")
+	}
+
+	if err := dom.CoreDump(dumpFile, DomDumpLive); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(dumpFile); os.IsNotExist(err) {
+		t.Errorf("core dump file was not generated [%s]", err)
 	}
 }
 

@@ -178,6 +178,17 @@ const (
 	DomPMSuspendedReasonUnknown DomainPMSuspendedReason = iota
 )
 
+type DomainDumpFlag uint
+
+const (
+	DomDumpCrash DomainDumpFlag = (1 << iota)
+	DomDumpLive
+	DomDumpBypassCache
+	DomDumpReset
+	DomDumpMemoryOnly
+	DomDumpDefault = 0
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -503,6 +514,24 @@ func (dom Domain) Suspend() *Error {
 // some special state like DomStatePMSuspended.
 func (dom Domain) Resume() *Error {
 	cRet := C.virDomainResume(dom.virDomain)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// CoreDump dumps the core of a domain on a given file for analysis. Note that
+// for remote Xen Daemon the file path will be interpreted in the remote host.
+// Hypervisors may require the user to manually ensure proper permissions on
+// the file named by "to".
+func (dom Domain) CoreDump(file string, flags DomainDumpFlag) *Error {
+	cFile := C.CString(file)
+	defer C.free(unsafe.Pointer(cFile))
+
+	cRet := C.virDomainCoreDump(dom.virDomain, cFile, C.uint(flags))
 	ret := int(cRet)
 
 	if ret == -1 {
