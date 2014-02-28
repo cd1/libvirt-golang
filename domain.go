@@ -592,3 +592,68 @@ func (dom Domain) VCPUs(flags DomainVCPUsFlag) (int, *Error) {
 
 	return ret, nil
 }
+
+// InfoState extracts the state of the domain.
+func (dom Domain) InfoState() (DomainState, *Error) {
+	var cInfo C.virDomainInfo
+	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, LastError()
+	}
+
+	return DomainState(cInfo.state), nil
+}
+
+// InfoMaxMemory extracts the maximum memory in KBytes allowed in the domain.
+func (dom Domain) InfoMaxMemory() (uint64, *Error) {
+	var cInfo C.virDomainInfo
+	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, LastError()
+	}
+
+	return uint64(cInfo.maxMem), nil
+}
+
+// InfoMemory extracts the memory in KBytes used by the domain.
+func (dom Domain) InfoMemory() (uint64, *Error) {
+	var cInfo C.virDomainInfo
+	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, LastError()
+	}
+
+	return uint64(cInfo.memory), nil
+}
+
+// InfoVCPUs extracts the number of virtual CPUs for the domain.
+func (dom Domain) InfoVCPUs() (uint16, *Error) {
+	var cInfo C.virDomainInfo
+	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, LastError()
+	}
+
+	return uint16(cInfo.nrVirtCpu), nil
+}
+
+// InfoCPUTime extracts the CPU time used in nanoseconds.
+func (dom Domain) InfoCPUTime() (uint64, *Error) {
+	var cInfo C.virDomainInfo
+	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return 0, LastError()
+	}
+
+	return uint64(cInfo.cpuTime), nil
+}

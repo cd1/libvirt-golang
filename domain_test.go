@@ -8,6 +8,7 @@ import (
 
 const (
 	DomTestMaxMemory         = 131072 // KiB
+	DomTestMemory            = 131072 // KiB
 	DomTestMetadataContent   = "<message>Hello world</message>"
 	DomTestMetadataNamespace = "code.google.com/p/libvirt-golang"
 	DomTestName              = "golang-test"
@@ -390,6 +391,61 @@ func TestDomainVCPUs(t *testing.T) {
 
 	if vcpus != DomTestVCPUs {
 		t.Errorf("wrong VCPUs number; got=%d, want=%d", vcpus, DomTestVCPUs)
+	}
+}
+
+func TestDomainInfo(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	state, err := dom.InfoState()
+	if err != nil {
+		t.Error(err)
+	}
+	otherState, _, err := dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+	if state != otherState {
+		t.Errorf("domain states obtained from different functions do not match; state1=%d, state2=%d", state, otherState)
+	}
+
+	maxMemory, err := dom.InfoMaxMemory()
+	if err != nil {
+		t.Error(err)
+	}
+	otherMaxMemory, err := dom.MaxMemory()
+	if err != nil {
+		t.Error(err)
+	}
+	if maxMemory != otherMaxMemory {
+		t.Errorf("domain maximum memories obtained from different functions do not match; memory1=%d, memory2=%d", maxMemory, otherMaxMemory)
+	}
+
+	vcpus, err := dom.InfoVCPUs()
+	if err != nil {
+		t.Error(err)
+	}
+	otherVcpus, err := dom.VCPUs(DomVCPUsCurrent)
+	if err != nil {
+		t.Error(err)
+	}
+	if vcpus != uint16(otherVcpus) {
+		t.Errorf("numbers of domain VCPUs obtained from different functions do not match; VCPUs1=%d, VCPUs2=%d", vcpus, otherVcpus)
+	}
+
+	memory, err := dom.InfoMemory()
+	if err != nil {
+		t.Error(err)
+	}
+	if memory != DomTestMemory {
+		t.Errorf("wrong memory value; got=%d, want=%d", memory, DomTestMemory)
+	}
+
+	if _, err = dom.InfoCPUTime(); err != nil {
+		t.Error(err)
 	}
 }
 
