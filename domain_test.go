@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	DomTestMaxMemory         = 131072 // KiB
 	DomTestMetadataContent   = "<message>Hello world</message>"
 	DomTestMetadataNamespace = "code.google.com/p/libvirt-golang"
 	DomTestName              = "golang-test"
@@ -352,6 +353,22 @@ func TestDomainRef(t *testing.T) {
 
 	if err := dom.Free(); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestDomainMaxMemory(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	memory, err := dom.MaxMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if memory != DomTestMaxMemory {
+		t.Errorf("wrong domain maximum memory; got=%d, want=%d", memory, DomTestMaxMemory)
 	}
 }
 

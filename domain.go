@@ -555,3 +555,16 @@ func (dom Domain) Ref() *Error {
 
 	return nil
 }
+
+// MaxMemory retrieves the maximum amount of physical memory allocated to
+// a domain.
+func (dom Domain) MaxMemory() (uint64, *Error) {
+	cRet := C.virDomainGetMaxMemory(dom.virDomain)
+	ret := uint64(cRet)
+
+	if ret == 0 {
+		return 0, LastError()
+	}
+
+	return ret, nil
+}
