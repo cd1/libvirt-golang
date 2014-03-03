@@ -13,6 +13,7 @@ const (
 	DomTestName              = "golang-test"
 	DomTestOSType            = "hvm"
 	DomTestUUID              = "9652e5cd-15f1-49ad-af73-63a502a9e2b8"
+	DomTestVCPUs             = 1
 	DomTestXMLFile           = "res/dom-test.xml"
 )
 
@@ -369,6 +370,26 @@ func TestDomainMaxMemory(t *testing.T) {
 
 	if memory != DomTestMaxMemory {
 		t.Errorf("wrong domain maximum memory; got=%d, want=%d", memory, DomTestMaxMemory)
+	}
+}
+
+func TestDomainVCPUs(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if _, err := dom.VCPUs(DomainVCPUsFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid VCPU flag")
+	}
+
+	vcpus, err := dom.VCPUs(DomVCPUsCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if vcpus != DomTestVCPUs {
+		t.Errorf("wrong VCPUs number; got=%d, want=%d", vcpus, DomTestVCPUs)
 	}
 }
 

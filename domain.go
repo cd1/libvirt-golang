@@ -189,6 +189,16 @@ const (
 	DomDumpDefault = 0
 )
 
+type DomainVCPUsFlag uint
+
+const (
+	DomVCPusConfig  DomainVCPUsFlag = DomAffectConfig
+	DomVCPUsCurrent                 = DomAffectCurrent
+	DomVCPUsLive                    = DomAffectLive
+	DomVCPUsMaximum                 = 4
+	DomVCPUsGuest                   = 8
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -563,6 +573,20 @@ func (dom Domain) MaxMemory() (uint64, *Error) {
 	ret := uint64(cRet)
 
 	if ret == 0 {
+		return 0, LastError()
+	}
+
+	return ret, nil
+}
+
+// VCPUs queries the number of virtual CPUs used by the domain. Note that this
+// call may fail if the underlying virtualization hypervisor does not support
+// it. This function may require privileged access to the hypervisor.
+func (dom Domain) VCPUs(flags DomainVCPUsFlag) (int, *Error) {
+	cRet := C.virDomainGetVcpusFlags(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
 		return 0, LastError()
 	}
 
