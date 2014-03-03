@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	DomTestDevice1XMLFile    = "res/cdrom-log.xml"
+	DomTestDevice2XMLFile    = "res/cdrom-tmp.xml"
 	DomTestMaxMemory         = 131072 // KiB
 	DomTestMemory            = 131072 // KiB
 	DomTestMetadataContent   = "<message>Hello world</message>"
@@ -496,6 +498,59 @@ func TestDomainSaveRestore(t *testing.T) {
 	}
 	if state != DomStateRunning {
 		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	}
+}
+
+func TestDomainDevices(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.AttachDevice("", DomDeviceModifyCurrent); err == nil {
+		t.Error("an error was not returned when attaching an empty XML")
+	}
+
+	if err := dom.DetachDevice("", DomDeviceModifyCurrent); err == nil {
+		t.Error("an error was not returned when detaching an empty XML")
+	}
+
+	if err := dom.UpdateDevice("", DomDeviceModifyCurrent); err == nil {
+		t.Error("an error was not returned when updating an empty XML")
+	}
+
+	xml, ioerr := ioutil.ReadFile(DomTestDevice1XMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+
+	if err := dom.AttachDevice(string(xml), DomainDeviceModifyFlag(99)); err == nil {
+		t.Error("an error was not returned when attaching a device with an invalid modify flag")
+	}
+
+	if err := dom.DetachDevice(string(xml), DomainDeviceModifyFlag(99)); err == nil {
+		t.Error("an error was not returned when detaching a device with an invalid modify flag")
+	}
+
+	if err := dom.UpdateDevice(string(xml), DomainDeviceModifyFlag(99)); err == nil {
+		t.Error("an error was not returned when updating a device with an invalid modify flag")
+	}
+
+	if err := dom.AttachDevice(string(xml), DomDeviceModifyCurrent); err != nil {
+		t.Fatal(err)
+	}
+
+	xml, ioerr = ioutil.ReadFile(DomTestDevice2XMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+
+	if err := dom.UpdateDevice(string(xml), DomDeviceModifyCurrent); err != nil {
+		t.Error(err)
+	}
+
+	if err := dom.DetachDevice(string(xml), DomDeviceModifyCurrent); err != nil {
+		t.Error(err)
 	}
 }
 

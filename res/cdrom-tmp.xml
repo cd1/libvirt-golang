@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<disk type="dir" device="cdrom">
+    <driver name="qemu" type="raw" />
+    <source dir="/var/tmp/" />
+    <target dev="hdc" />
+    <readonly />
+</disk>

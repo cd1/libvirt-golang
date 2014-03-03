@@ -208,6 +208,15 @@ const (
 	DomSaveDefault = 0
 )
 
+type DomainDeviceModifyFlag uint
+
+const (
+	DomDeviceModifyConfig  DomainDeviceModifyFlag = DomAffectConfig
+	DomDeviceModifyCurrent                        = DomAffectCurrent
+	DomDeviceModifyLive                           = DomAffectLive
+	DomDeviceModifyForce                          = 4
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -684,6 +693,78 @@ func (dom Domain) Save(to string, xml string, flags DomainSaveFlag) *Error {
 	}
 
 	cRet := C.virDomainSaveFlags(dom.virDomain, cTo, cXML, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// AttachDevice attaches a virtual device to a domain, using the flags
+// parameter to control how the device is attached. DomDeviceModifyCurrent
+// specifies that the device allocation is made based on current domain state.
+// DomDeviceModifyLive specifies that the device shall be allocated to the
+// active domain instance only and is not added to the persisted domain
+// configuration. DomDeviceModifyConfig specifies that the device shall be
+// allocated to the persisted domain configuration only. Note that the target
+// hypervisor must return an error if unable to satisfy flags. E.g. the
+// hypervisor driver will return failure if DomDeviceModifyLive is specified
+// but it only supports modifying the persisted device allocation.
+func (dom Domain) AttachDevice(deviceXML string, flags DomainDeviceModifyFlag) *Error {
+	cXML := C.CString(deviceXML)
+	defer C.free(unsafe.Pointer(cXML))
+
+	cRet := C.virDomainAttachDeviceFlags(dom.virDomain, cXML, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// DetachDevice detaches a virtual device from a domain, using the flags
+// parameter to control how the device is detached. DomDeviceModifyCurrent
+// specifies that the device allocation is removed based on current domain
+// state. DomDeviceModifyLive specifies that the device shall be deallocated
+// from the active domain instance only and is not from the persisted domain
+// configuration. DomDeviceModifyConfig specifies that the device shall be
+// deallocated from the persisted domain configuration only. Note that the
+// target hypervisor must return an error if unable to satisfy flags. E.g. the
+// hypervisor driver will return failure if DomDeviceModifyLive is specified
+// but it only supports removing the persisted device allocation.
+func (dom Domain) DetachDevice(deviceXML string, flags DomainDeviceModifyFlag) *Error {
+	cXML := C.CString(deviceXML)
+	defer C.free(unsafe.Pointer(cXML))
+
+	cRet := C.virDomainDetachDeviceFlags(dom.virDomain, cXML, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// UpdateDevice changes a virtual device on a domain, using the flags parameter
+// to control how the device is changed. DomDeviceModifyCurrent specifies that
+// the device change is made based on current domain state. DomDeviceModifyLive
+// specifies that the device shall be changed on the active domain instance
+// only and is not added to the persisted domain configuration.
+// DomDeviceModifyConfig specifies that the device shall be changed on the
+// persisted domain configuration only. Note that the target hypervisor must
+// return an error if unable to satisfy flags. E.g. the hypervisor driver will
+// return failure if DomDeviceModifyLive is specified but it only supports
+// modifying the persisted device allocation.
+func (dom Domain) UpdateDevice(deviceXML string, flags DomainDeviceModifyFlag) *Error {
+	cXML := C.CString(deviceXML)
+	defer C.free(unsafe.Pointer(cXML))
+
+	cRet := C.virDomainUpdateDeviceFlags(dom.virDomain, cXML, C.uint(flags))
 	ret := int(cRet)
 
 	if ret == -1 {
