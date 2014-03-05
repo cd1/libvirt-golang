@@ -449,6 +449,56 @@ func TestDomainInfo(t *testing.T) {
 	}
 }
 
+func TestDomainSaveRestore(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Destroy(DomDestroyDefault)
+
+	if err := dom.Save("", "", DomSaveDefault); err == nil {
+		t.Error("an error was not returned when using an invalid file name")
+	}
+
+	file, ioerr := ioutil.TempFile("", "test-save-restore_")
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+	defer os.Remove(file.Name())
+
+	if err := dom.Save(file.Name(), "", DomainSaveFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid save flag")
+	}
+
+	if err := dom.Save(file.Name(), "", DomSaveDefault); err != nil {
+		t.Error(err)
+	}
+
+	state, reason, err := dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+	if state != DomStateShutoff {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateShutoff)
+	}
+
+	if err = conn.Restore(file.Name(), "", DomSaveDefault); err != nil {
+		t.Error(err)
+	}
+
+	state, reason, err = dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+	if state != DomStateRunning {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	}
+}
+
 func BenchmarkSuspendResume(b *testing.B) {
 	dom, conn := createTestDomain(b, DomCreateStartAutodestroy)
 	defer conn.Close()
@@ -461,6 +511,36 @@ func BenchmarkSuspendResume(b *testing.B) {
 		}
 
 		if err := dom.Resume(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkSaveRestore(b *testing.B) {
+	dom, conn := defineTestDomain(b)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Create(DomCreateDefault); err != nil {
+		b.Fatal(err)
+	}
+	defer dom.Destroy(DomDestroyDefault)
+
+	file, ioerr := ioutil.TempFile("", "bench-save-restore_")
+	if ioerr != nil {
+		b.Fatal(ioerr)
+	}
+	defer os.Remove(file.Name())
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := dom.Save(file.Name(), "", DomSaveDefault); err != nil {
+			b.Error(err)
+		}
+
+		if err := conn.Restore(file.Name(), "", DomSaveDefault); err != nil {
 			b.Error(err)
 		}
 	}

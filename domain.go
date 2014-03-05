@@ -199,6 +199,15 @@ const (
 	DomVCPUsGuest                   = 8
 )
 
+type DomainSaveFlag uint
+
+const (
+	DomSaveBypassCache DomainSaveFlag = (1 << iota)
+	DomSaveRunning
+	DomSavePaused
+	DomSaveDefault = 0
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -656,4 +665,30 @@ func (dom Domain) InfoCPUTime() (uint64, *Error) {
 	}
 
 	return uint64(cInfo.cpuTime), nil
+}
+
+// Save suspends a domain and save its memory contents to a file on disk. After
+// the call, if successful, the domain is not listed as running anymore (this
+// ends the life of a transient domain). Use Restore() to restore a domain
+// after saving.
+func (dom Domain) Save(to string, xml string, flags DomainSaveFlag) *Error {
+	cTo := C.CString(to)
+	defer C.free(unsafe.Pointer(cTo))
+
+	var cXML *C.char
+	if xml != "" {
+		cXML = C.CString(xml)
+		defer C.free(unsafe.Pointer(cXML))
+	} else {
+		cXML = nil
+	}
+
+	cRet := C.virDomainSaveFlags(dom.virDomain, cTo, cXML, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
 }

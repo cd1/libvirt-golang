@@ -370,3 +370,26 @@ func (conn Connection) LookupDomainByUUID(uuid string) (Domain, *Error) {
 
 	return Domain{cDomain}, nil
 }
+
+// Restore restores a domain saved to disk by Save().
+func (conn Connection) Restore(from string, xml string, flags DomainSaveFlag) *Error {
+	cFrom := C.CString(from)
+	defer C.free(unsafe.Pointer(cFrom))
+
+	var cXML *C.char
+	if xml != "" {
+		cXML = C.CString(xml)
+		defer C.free(unsafe.Pointer(cXML))
+	} else {
+		cXML = nil
+	}
+
+	cRet := C.virDomainRestoreFlags(conn.virConnect, cFrom, cXML, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
