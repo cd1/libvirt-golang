@@ -128,7 +128,7 @@ func TestDomainOSType(t *testing.T) {
 	}
 
 	if os != DomTestOSType {
-		t.Errorf("wrong test domain OS type; got=%s, want=%", os, DomTestOSType)
+		t.Errorf("wrong test domain OS type; got=%s, want=%s", os, DomTestOSType)
 	}
 }
 
