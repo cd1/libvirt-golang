@@ -6,6 +6,7 @@ package libvirt
 import "C"
 import (
 	"log"
+	"reflect"
 	"unsafe"
 )
 
@@ -239,23 +240,27 @@ func (conn Connection) Ref() *Error {
 // CPUModelNames gets the list of supported CPU models for a
 // specific architecture.
 func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
-	var cModels **C.char
 	cArch := C.CString(arch)
 	defer C.free(unsafe.Pointer(cArch))
 
-	cRet := C.virConnectGetCPUModelNames(conn.virConnect, cArch, &cModels, 0)
+	var cModels []*C.char
+	modelsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cModels))
+
+	cRet := C.virConnectGetCPUModelNames(conn.virConnect, cArch, (***C.char)(unsafe.Pointer(&modelsSH.Data)), 0)
 	ret := int(cRet)
-	defer C.free(unsafe.Pointer(cModels))
 
 	if ret == -1 {
 		return nil, LastError()
 	}
+	defer C.free(unsafe.Pointer(modelsSH.Data))
 
-	cBackedModels := (*[1 << 30]*C.char)(unsafe.Pointer(cModels))[:ret:ret]
+	modelsSH.Cap = ret
+	modelsSH.Len = ret
+
 	models := make([]string, 0, ret)
 	for i := 0; i < ret; i++ {
-		models = append(models, C.GoString(cBackedModels[i]))
-		defer C.free(unsafe.Pointer(cBackedModels[i]))
+		models = append(models, C.GoString(cModels[i]))
+		defer C.free(unsafe.Pointer(cModels[i]))
 	}
 
 	return models, nil
@@ -281,19 +286,23 @@ func (conn Connection) MaxVCPUs(typ string) (int, *Error) {
 // ListDomains collects a possibly-filtered list of all domains, and return an
 // array of information for each.
 func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
-	var cDomains *C.virDomainPtr
-	cRet := C.virConnectListAllDomains(conn.virConnect, &cDomains, (C.uint)(flags))
+	var cDomains []C.virDomainPtr
+	domainsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cDomains))
+
+	cRet := C.virConnectListAllDomains(conn.virConnect, (**C.virDomainPtr)(unsafe.Pointer(&domainsSH.Data)), C.uint(flags))
 	ret := int(cRet)
 
 	if ret == -1 {
 		return nil, LastError()
 	}
-	defer C.free(unsafe.Pointer(cDomains))
+	defer C.free(unsafe.Pointer(domainsSH.Data))
 
-	cBackedDomains := (*[1 << 30]C.virDomainPtr)(unsafe.Pointer(cDomains))[:ret:ret]
+	domainsSH.Cap = ret
+	domainsSH.Len = ret
+
 	domains := make([]Domain, 0, ret)
 	for i := 0; i < ret; i++ {
-		domains = append(domains, Domain{cBackedDomains[i]})
+		domains = append(domains, Domain{cDomains[i]})
 	}
 
 	return domains, nil
