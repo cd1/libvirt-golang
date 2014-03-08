@@ -285,7 +285,7 @@ func TestDefineAndUndefineDomain(t *testing.T) {
 }
 
 func TestLookupDomainByID(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -315,7 +315,7 @@ func TestLookupDomainByID(t *testing.T) {
 }
 
 func TestLookupDomainByName(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -335,7 +335,7 @@ func TestLookupDomainByName(t *testing.T) {
 }
 
 func TestLookupDomainByUUID(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 

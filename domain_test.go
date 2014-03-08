@@ -13,7 +13,7 @@ const (
 	DomTestXMLFile           = "res/dom-test.xml"
 )
 
-func openTestDomain(t testing.TB) (Domain, Connection) {
+func createTestDomain(t testing.TB, flags DomainCreateFlag) (Domain, Connection) {
 	conn := openTestConnection(t)
 
 	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
@@ -21,7 +21,23 @@ func openTestDomain(t testing.TB) (Domain, Connection) {
 		t.Fatal(ioerr)
 	}
 
-	dom, err := conn.CreateDomain(string(xml), DomCreateStartAutodestroy)
+	dom, err := conn.CreateDomain(string(xml), flags)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return dom, conn
+}
+
+func defineTestDomain(t testing.TB) (Domain, Connection) {
+	conn := openTestConnection(t)
+
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+
+	dom, err := conn.DefineDomain(string(xml))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +46,7 @@ func openTestDomain(t testing.TB) (Domain, Connection) {
 }
 
 func TestDomainAutostart(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -40,7 +56,7 @@ func TestDomainAutostart(t *testing.T) {
 }
 
 func TestDomainHasCurrentSnapshot(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -50,7 +66,7 @@ func TestDomainHasCurrentSnapshot(t *testing.T) {
 }
 
 func TestDomainHasManagedSaveImage(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -60,7 +76,7 @@ func TestDomainHasManagedSaveImage(t *testing.T) {
 }
 
 func TestDomainIsActive(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -70,7 +86,7 @@ func TestDomainIsActive(t *testing.T) {
 }
 
 func TestDomainIsPersistent(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -80,7 +96,7 @@ func TestDomainIsPersistent(t *testing.T) {
 }
 
 func TestDomainIsUpdated(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -90,7 +106,7 @@ func TestDomainIsUpdated(t *testing.T) {
 }
 
 func TestDomainOSType(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -105,7 +121,7 @@ func TestDomainOSType(t *testing.T) {
 }
 
 func TestDomainName(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -118,7 +134,7 @@ func TestDomainName(t *testing.T) {
 
 func TestDomainHostname(t *testing.T) {
 	// Hostname is not supported by the "QEMU" driver
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -128,7 +144,7 @@ func TestDomainHostname(t *testing.T) {
 }
 
 func TestDomainID(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -143,7 +159,7 @@ func TestDomainID(t *testing.T) {
 }
 
 func TestDomainUUID(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -158,7 +174,7 @@ func TestDomainUUID(t *testing.T) {
 }
 
 func TestDomainXML(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -177,7 +193,7 @@ func TestDomainXML(t *testing.T) {
 }
 
 func TestDomainMetadata(t *testing.T) {
-	dom, conn := openTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
