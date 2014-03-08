@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	DomTestMetadataContent   = "<message>Hello world</message>"
 	DomTestMetadataNamespace = "code.google.com/p/libvirt-golang"
 	DomTestName              = "golang-test"
 	DomTestOSType            = "hvm"
@@ -227,7 +228,7 @@ func TestDomainMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(metadata) == 0 {
-		t.Error("empty test domain metadata")
+	if metadata != DomTestMetadataContent {
+		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, DomTestMetadataContent)
 	}
 }
