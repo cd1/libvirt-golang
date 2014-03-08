@@ -217,6 +217,15 @@ const (
 	DomDeviceModifyForce                          = 4
 )
 
+type DomainMemoryFlag uint
+
+const (
+	DomMemoryConfig  DomainMemoryFlag = DomAffectConfig
+	DomMemoryCurrent                  = DomAffectCurrent
+	DomMemoryLive                     = DomAffectLive
+	DomMemoryMaximum                  = 4
+)
+
 type Domain struct {
 	virDomain C.virDomainPtr
 }
@@ -765,6 +774,79 @@ func (dom Domain) UpdateDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	defer C.free(unsafe.Pointer(cXML))
 
 	cRet := C.virDomainUpdateDeviceFlags(dom.virDomain, cXML, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// SetAutostart configures the domain to be automatically started when the host
+// machine boots.
+func (dom Domain) SetAutostart(autostart bool) *Error {
+	var cAutostart C.int
+	if autostart {
+		cAutostart = 1
+	} else {
+		cAutostart = 0
+	}
+
+	cRet := C.virDomainSetAutostart(dom.virDomain, cAutostart)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// SetMemory dynamically changes the target amount of physical memory allocated
+// to a domain. This function may require privileged access to the hypervisor.
+func (dom Domain) SetMemory(memory uint64, flags DomainMemoryFlag) *Error {
+	cRet := C.virDomainSetMemoryFlags(dom.virDomain, C.ulong(memory), C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// SetMetadata sets the appropriate domain element given by "type" to the value
+// of "description". A "type" of DomMetaDescription is free-form text;
+// DomMetaTitle is free-form, but no newlines are permitted, and should be
+// short (although the length is not enforced). For these two options "key" and
+// "uri" are irrelevant and must be set to NULL.
+func (dom Domain) SetMetadata(typ DomainMetadataType, metadata string, key string, uri string, impact DomainModificationImpact) *Error {
+	cMetadata := C.CString(metadata)
+	defer C.free(unsafe.Pointer(cMetadata))
+
+	cKey := C.CString(key)
+	defer C.free(unsafe.Pointer(cKey))
+
+	cURI := C.CString(uri)
+	defer C.free(unsafe.Pointer(cURI))
+
+	cRet := C.virDomainSetMetadata(dom.virDomain, C.int(typ), cMetadata, cKey, cURI, C.uint(impact))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// SetVCPUs dynamically changes the number of virtual CPUs used by the domain.
+// Note that this call may fail if the underlying virtualization hypervisor
+// does not support it or if growing the number is arbitrary limited. This
+// function may require privileged access to the hypervisor.
+func (dom Domain) SetVCPUs(vcpus uint, flags DomainVCPUsFlag) *Error {
+	cRet := C.virDomainSetVcpusFlags(dom.virDomain, C.uint(vcpus), C.uint(flags))
 	ret := int(cRet)
 
 	if ret == -1 {
