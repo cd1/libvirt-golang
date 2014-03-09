@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -716,6 +717,32 @@ func TestDomainManagedSave(t *testing.T) {
 
 	if dom.HasManagedSaveImage() {
 		t.Error("the test domain should not have a managed save image anymore after removing it")
+	}
+}
+
+func TestDomainSendKey(t *testing.T) {
+	CtrlAltDel := []uint32{29, 56, 111}
+
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	if err := dom.SendKey(DomKeycodeSetLinux, time.Duration(50)*time.Millisecond, CtrlAltDel); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDomainSendProcessSignal(t *testing.T) {
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	defer conn.Close()
+	defer dom.Free()
+
+	if err := dom.SendProcessSignal(0, DomSIGNOP); err == nil {
+		t.Error("cannot send a signal to the process 0")
+	}
+
+	if err := dom.SendProcessSignal(1, DomSIGNOP); err == nil {
+		t.Error("the function \"SendProcessSignal\" should not be supported yet")
 	}
 }
 

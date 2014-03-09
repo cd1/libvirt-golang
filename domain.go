@@ -5,6 +5,7 @@ package libvirt
 import "C"
 import (
 	"log"
+	"time"
 	"unsafe"
 )
 
@@ -224,6 +225,91 @@ const (
 	DomMemoryCurrent                  = DomAffectCurrent
 	DomMemoryLive                     = DomAffectLive
 	DomMemoryMaximum                  = 4
+)
+
+type DomainKeycodeSet uint
+
+const (
+	DomKeycodeSetLinux DomainKeycodeSet = iota
+	DomKeycodeSetXT
+	DomKeycodeSetATSet1
+	DomKeycodeSetATSet2
+	DomKeycodeSetATSet3
+	DomKeycodeSetOSX
+	DomKeycodeSetXTKbd
+	DomKeycodeSetUSB
+	DomKeycodeSetWin32
+	DomKeycodeSetRFB
+)
+
+type DomainProcessSignal uint
+
+const (
+	DomSIGNOP = iota
+	DomSIGHUP
+	DomSIGINT
+	DomSIGQUIT
+	DomSIGILL
+	DomSIGTRAP
+	DomSIGABRT
+	DomSIGBUS
+	DomSIGFPE
+	DomSIGKILL
+	DomSIGUSR1
+	DomSIGSEGV
+	DomSIGUSR2
+	DomSIGPIPE
+	DomSIGALRM
+	DomSIGTERM
+	DomSIGSTKFLT
+	DomSIGCHLD
+	DomSIGCONT
+	DomSIGSTOP
+	DomSIGTSTP
+	DomSIGTTIN
+	DomSIGTTOU
+	DomSIGURG
+	DomSIGXCPU
+	DomSIGXFSZ
+	DomSIGVTALRM
+	DomSIGPROF
+	DomSIGWINCH
+	DomSIGPOLL
+	DomSIGPWR
+	DomSIGSYS
+	DomSIGRT0
+	DomSIGRT1
+	DomSIGRT2
+	DomSIGRT3
+	DomSIGRT4
+	DomSIGRT5
+	DomSIGRT6
+	DomSIGRT7
+	DomSIGRT8
+	DomSIGRT9
+	DomSIGRT10
+	DomSIGRT11
+	DomSIGRT12
+	DomSIGRT13
+	DomSIGRT14
+	DomSIGRT15
+	DomSIGRT16
+	DomSIGRT17
+	DomSIGRT18
+	DomSIGRT19
+	DomSIGRT20
+	DomSIGRT21
+	DomSIGRT22
+	DomSIGRT23
+	DomSIGRT24
+	DomSIGRT25
+	DomSIGRT26
+	DomSIGRT27
+	DomSIGRT28
+	DomSIGRT29
+	DomSIGRT30
+	DomSIGRT31
+	DomSIGRT32
 )
 
 type Domain struct {
@@ -878,6 +964,30 @@ func (dom Domain) ManagedSave(flags DomainSaveFlag) *Error {
 // ManagedSaveRemove removes any managed save image for this domain.
 func (dom Domain) ManagedSaveRemove() *Error {
 	cRet := C.virDomainManagedSaveRemove(dom.virDomain, 0)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// SendKey send key(s) to the guest.
+func (dom Domain) SendKey(codeSet DomainKeycodeSet, hold time.Duration, keycodes []uint32) *Error {
+	cRet := C.virDomainSendKey(dom.virDomain, C.uint(codeSet), C.uint(hold*time.Millisecond), (*C.uint)(unsafe.Pointer(&keycodes[0])), C.int(len(keycodes)), 0)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// SendProcessSignal sends a signal to the designated process in the guest.
+func (dom Domain) SendProcessSignal(pid int64, signal DomainProcessSignal) *Error {
+	cRet := C.virDomainSendProcessSignal(dom.virDomain, C.longlong(pid), C.uint(signal), 0)
 	ret := int(cRet)
 
 	if ret == -1 {
