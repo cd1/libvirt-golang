@@ -577,7 +577,7 @@ func TestDomainSaveRestore(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateShutoff)
 	}
 
-	if err = conn.Restore(file.Name(), "", DomSaveDefault); err != nil {
+	if err = conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
 		t.Error(err)
 	}
 
@@ -760,7 +760,7 @@ func BenchmarkSaveRestore(b *testing.B) {
 			b.Error(err)
 		}
 
-		if err := conn.Restore(file.Name(), "", DomSaveDefault); err != nil {
+		if err := conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
 			b.Error(err)
 		}
 	}

@@ -380,8 +380,8 @@ func (conn Connection) LookupDomainByUUID(uuid string) (Domain, *Error) {
 	return Domain{cDomain}, nil
 }
 
-// Restore restores a domain saved to disk by Save().
-func (conn Connection) Restore(from string, xml string, flags DomainSaveFlag) *Error {
+// RestoreDomain restores a domain saved to disk by Save().
+func (conn Connection) RestoreDomain(from string, xml string, flags DomainSaveFlag) *Error {
 	cFrom := C.CString(from)
 	defer C.free(unsafe.Pointer(cFrom))
 
