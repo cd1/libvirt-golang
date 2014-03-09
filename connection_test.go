@@ -71,13 +71,8 @@ func TestVersion(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	version, err := conn.Version()
-	if err != nil {
+	if _, err := conn.Version(); err != nil {
 		t.Fatal(err)
-	}
-
-	if version < 0 {
-		t.Errorf("hypervisor version should be a positive number: %d", version)
 	}
 }
 
@@ -85,13 +80,8 @@ func TestLibVersion(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	version, err := conn.LibVersion()
-	if err != nil {
+	if _, err := conn.LibVersion(); err != nil {
 		t.Fatal(err)
-	}
-
-	if version < 0 {
-		t.Errorf("libvirt version should be a positive number: %d", version)
 	}
 }
 

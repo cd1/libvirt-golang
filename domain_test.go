@@ -175,13 +175,9 @@ func TestDomainID(t *testing.T) {
 	defer dom.Free()
 	defer dom.Undefine(DomUndefineDefault)
 
-	id, err := dom.ID()
+	_, err := dom.ID()
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if id < 0 {
-		t.Error("domain ID should be a positive number")
 	}
 }
 
