@@ -46,9 +46,10 @@ func defineTestDomain(t testing.TB) (Domain, Connection) {
 }
 
 func TestDomainAutostart(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if dom.Autostart() {
 		t.Error("test domain should not have autostart enabled")
@@ -56,9 +57,10 @@ func TestDomainAutostart(t *testing.T) {
 }
 
 func TestDomainHasCurrentSnapshot(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if dom.HasCurrentSnapshot() {
 		t.Error("test domain should not have current snapshot")
@@ -66,9 +68,10 @@ func TestDomainHasCurrentSnapshot(t *testing.T) {
 }
 
 func TestDomainHasManagedSaveImage(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if dom.HasManagedSaveImage() {
 		t.Error("test domain should not have managed save image")
@@ -76,29 +79,32 @@ func TestDomainHasManagedSaveImage(t *testing.T) {
 }
 
 func TestDomainIsActive(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
-	if !dom.IsActive() {
-		t.Error("test domain should be active")
+	if dom.IsActive() {
+		t.Error("test domain should not be active")
 	}
 }
 
 func TestDomainIsPersistent(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
-	if dom.IsPersistent() {
-		t.Error("test domain should be transient")
+	if !dom.IsPersistent() {
+		t.Error("test domain should be persistent")
 	}
 }
 
 func TestDomainIsUpdated(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if dom.IsUpdated() {
 		t.Error("test domain should not have been updated")
@@ -106,9 +112,10 @@ func TestDomainIsUpdated(t *testing.T) {
 }
 
 func TestDomainOSType(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	os, err := dom.OSType()
 	if err != nil {
@@ -121,9 +128,10 @@ func TestDomainOSType(t *testing.T) {
 }
 
 func TestDomainName(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	name := dom.Name()
 
@@ -134,9 +142,10 @@ func TestDomainName(t *testing.T) {
 
 func TestDomainHostname(t *testing.T) {
 	// Hostname is not supported by the "QEMU" driver
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if _, err := dom.Hostname(); err == nil {
 		t.Error("Hostname should not be supported by the \"QEMU\" driver")
@@ -144,9 +153,10 @@ func TestDomainHostname(t *testing.T) {
 }
 
 func TestDomainID(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	id, err := dom.ID()
 	if err != nil {
@@ -159,9 +169,10 @@ func TestDomainID(t *testing.T) {
 }
 
 func TestDomainUUID(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	uuid, err := dom.UUID()
 	if err != nil {
@@ -174,9 +185,10 @@ func TestDomainUUID(t *testing.T) {
 }
 
 func TestDomainXML(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if _, err := dom.XML(99); err == nil {
 		t.Error("an error was not returned when using an invalid flag")
@@ -193,9 +205,10 @@ func TestDomainXML(t *testing.T) {
 }
 
 func TestDomainMetadata(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
 
 	if _, err := dom.Metadata(99, "", DomAffectCurrent); err == nil {
 		t.Error("an error was not returned when using an invalid type")
