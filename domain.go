@@ -855,3 +855,34 @@ func (dom Domain) SetVCPUs(vcpus uint, flags DomainVCPUsFlag) *Error {
 
 	return nil
 }
+
+// ManagedSave suspends a domain and save its memory contents to a file on
+// disk. After the call, if successful, the domain is not listed as running
+// anymore. The difference from Save() is that libvirt is keeping track of the
+// saved state itself, and will reuse it once the domain is being restarted
+// (automatically or via an explicit libvirt call). As a result any running
+// domain is sure to not have a managed saved image. This also implies that
+// managed save only works on persistent domains, since the domain must still
+// exist in order to use Create() to restart it.
+func (dom Domain) ManagedSave(flags DomainSaveFlag) *Error {
+	cRet := C.virDomainManagedSave(dom.virDomain, C.uint(flags))
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}
+
+// ManagedSaveRemove removes any managed save image for this domain.
+func (dom Domain) ManagedSaveRemove() *Error {
+	cRet := C.virDomainManagedSaveRemove(dom.virDomain, 0)
+	ret := int(cRet)
+
+	if ret == -1 {
+		return LastError()
+	}
+
+	return nil
+}

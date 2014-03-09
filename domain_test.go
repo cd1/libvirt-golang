@@ -84,17 +84,6 @@ func TestDomainHasCurrentSnapshot(t *testing.T) {
 	}
 }
 
-func TestDomainHasManagedSaveImage(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if dom.HasManagedSaveImage() {
-		t.Error("test domain should not have managed save image")
-	}
-}
-
 func TestDomainIsActive(t *testing.T) {
 	dom, conn := defineTestDomain(t)
 	defer conn.Close()
@@ -654,6 +643,82 @@ func TestDomainDevices(t *testing.T) {
 	}
 }
 
+func TestDomainManagedSave(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
+	// do not Destroy the domain - it will be already destroyed in the end
+
+	if err := dom.ManagedSave(DomainSaveFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid save flag")
+	}
+
+	if dom.HasManagedSaveImage() {
+		t.Error("the test domain should not have a managed save image initially")
+	}
+
+	if err := dom.ManagedSave(DomSaveDefault); err != nil {
+		t.Error(err)
+	}
+
+	if !dom.HasManagedSaveImage() {
+		t.Error("the test domain should have a managed save image after creating a managed save image")
+	}
+
+	state, reason, err := dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+	if expectedState := DomStateShutoff; state != expectedState {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, expectedState)
+	}
+
+	if err = dom.Create(DomCreateDefault); err != nil {
+		t.Error(err)
+	}
+
+	if dom.HasManagedSaveImage() {
+		t.Error("the test domain should not have a managed save image anymore after starting from an existing managed save image")
+	}
+
+	state, reason, err = dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+	if expectedState := DomStateRunning; state != expectedState {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, expectedState)
+	}
+
+	if err := dom.ManagedSave(DomSaveDefault); err != nil {
+		t.Error(err)
+	}
+
+	state, reason, err = dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+	if expectedState := DomStateShutoff; state != expectedState {
+		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, expectedState)
+	}
+
+	if !dom.HasManagedSaveImage() {
+		t.Error("the test domain should have a managed save image after creating a managed save image")
+	}
+
+	if err := dom.ManagedSaveRemove(); err != nil {
+		t.Error(err)
+	}
+
+	if dom.HasManagedSaveImage() {
+		t.Error("the test domain should not have a managed save image anymore after removing it")
+	}
+}
+
 func BenchmarkSuspendResume(b *testing.B) {
 	dom, conn := createTestDomain(b, DomCreateStartAutodestroy)
 	defer conn.Close()
@@ -696,6 +761,30 @@ func BenchmarkSaveRestore(b *testing.B) {
 		}
 
 		if err := conn.Restore(file.Name(), "", DomSaveDefault); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkManagedSave(b *testing.B) {
+	dom, conn := defineTestDomain(b)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Create(DomCreateDefault); err != nil {
+		b.Fatal(err)
+	}
+	defer dom.Destroy(DomDestroyDefault)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := dom.ManagedSave(DomSaveDefault); err != nil {
+			b.Error(err)
+		}
+
+		if err := dom.Create(DomCreateDefault); err != nil {
 			b.Error(err)
 		}
 	}
