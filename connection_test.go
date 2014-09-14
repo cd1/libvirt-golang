@@ -62,7 +62,11 @@ func TestOpenReadOnly(t *testing.T) {
 		t.Error("the libvirt connection is not secure")
 	}
 
-	if _, err := conn.DefineDomain(""); err == nil {
+	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+	if _, err := conn.DefineDomain(string(xml)); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining domains")
 	}
 }
