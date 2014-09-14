@@ -357,7 +357,7 @@ func TestLookupDomainByUUID(t *testing.T) {
 	}
 }
 
-func BenchmarkConnection(b *testing.B) {
+func BenchmarkQEMUConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(qemuSystemURI)
 		if err != nil {
