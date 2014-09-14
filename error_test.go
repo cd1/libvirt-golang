@@ -5,8 +5,7 @@ import (
 )
 
 func TestNewError(t *testing.T) {
-	nilError := NewError(nil)
-	if nilError != nil {
+	if nilError := NewError(nil); nilError != nil {
 		t.Error("creating an error with a nil value should return nil")
 	}
 }
