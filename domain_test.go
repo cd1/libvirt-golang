@@ -354,7 +354,6 @@ func TestDomainCoreDump(t *testing.T) {
 	}
 
 	dumpFile := DomTestName + ".core"
-	defer os.Remove(dumpFile)
 
 	if err := dom.CoreDump(dumpFile, DomainDumpFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid core dump flag")
@@ -363,6 +362,7 @@ func TestDomainCoreDump(t *testing.T) {
 	if err := dom.CoreDump(dumpFile, DomDumpLive); err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove(dumpFile)
 
 	if _, err := os.Stat(dumpFile); os.IsNotExist(err) {
 		t.Errorf("core dump file was not generated [%s]", err)
