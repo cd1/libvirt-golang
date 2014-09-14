@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cd1/utils-golang"
 )
 
 const (
@@ -236,7 +238,7 @@ func TestDomainMetadata(t *testing.T) {
 		t.Error("an error was not returned when using an invalid type to get a domain metadata")
 	}
 
-	if _, err := dom.Metadata(DomMetaElement, "xxx", DomAffectCurrent); err == nil {
+	if _, err := dom.Metadata(DomMetaElement, utils.RandomString(), DomAffectCurrent); err == nil {
 		t.Error("an error was not returned when using a non-existing metadata tag to get a domain metadata")
 	}
 

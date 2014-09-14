@@ -3,6 +3,8 @@ package libvirt
 import (
 	"io/ioutil"
 	"testing"
+
+	"github.com/cd1/utils-golang"
 )
 
 const (
@@ -20,7 +22,7 @@ func openTestConnection(t testing.TB) Connection {
 }
 
 func TestOpen(t *testing.T) {
-	if _, err := Open("xxx"); err == nil {
+	if _, err := Open(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
@@ -42,7 +44,7 @@ func TestOpen(t *testing.T) {
 }
 
 func TestOpenReadOnly(t *testing.T) {
-	if _, err := OpenReadOnly("xxx"); err == nil {
+	if _, err := OpenReadOnly(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
 
@@ -178,7 +180,7 @@ func TestCPUModelNames(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	if _, err := conn.CPUModelNames("xxx"); err == nil {
+	if _, err := conn.CPUModelNames(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when getting CPU model names from invalid arch")
 	}
 
@@ -196,7 +198,7 @@ func TestMaxVCPUs(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	if _, err := conn.MaxVCPUs("xxx"); err == nil {
+	if _, err := conn.MaxVCPUs(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
 	}
 
@@ -317,7 +319,7 @@ func TestLookupDomainByName(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	if _, err := conn.LookupDomainByName("xxx"); err == nil {
+	if _, err := conn.LookupDomainByName(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain name")
 	}
 
@@ -337,7 +339,7 @@ func TestLookupDomainByUUID(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	if _, err := conn.LookupDomainByUUID("xxx"); err == nil {
+	if _, err := conn.LookupDomainByUUID(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain UUID")
 	}
 
