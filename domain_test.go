@@ -208,7 +208,7 @@ func TestDomainXML(t *testing.T) {
 }
 
 func TestDomainMetadata(t *testing.T) {
-	const NewMetadata = `
+	const newMetadata = `
         <messages>
             <m1>foo</m1>
             <m2>bar</m2>
@@ -228,7 +228,7 @@ func TestDomainMetadata(t *testing.T) {
 		t.Error("an error was not returned when using an empty content to set a domain metadata")
 	}
 
-	if err := dom.SetMetadata(DomMetaElement, NewMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomainModificationImpact(99)); err == nil {
+	if err := dom.SetMetadata(DomMetaElement, newMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomainModificationImpact(99)); err == nil {
 		t.Error("an error was not returned when using an invalid impact config to set a domain metadata")
 	}
 
@@ -253,7 +253,7 @@ func TestDomainMetadata(t *testing.T) {
 		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, DomTestMetadataContent)
 	}
 
-	if err = dom.SetMetadata(DomMetaElement, NewMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomAffectCurrent); err != nil {
+	if err = dom.SetMetadata(DomMetaElement, newMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomAffectCurrent); err != nil {
 		t.Fatal(err)
 	}
 
@@ -262,8 +262,8 @@ func TestDomainMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if metadata != strings.TrimSpace(NewMetadata) {
-		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, NewMetadata)
+	if metadata != strings.TrimSpace(newMetadata) {
+		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, newMetadata)
 	}
 }
 
@@ -389,8 +389,8 @@ func TestDomainRef(t *testing.T) {
 }
 
 func TestDomainMemory(t *testing.T) {
-	const NewMaxMemory = 1024 * 1024 * 10 // 10 GiB
-	const NewMemory = 1024 * 1024 * 3     // 3 GiB
+	const newMaxMemory = 1024 * 1024 * 10 // 10 GiB
+	const newMemory = 1024 * 1024 * 3     // 3 GiB
 
 	dom, conn := defineTestDomain(t)
 	defer conn.Close()
@@ -401,7 +401,7 @@ func TestDomainMemory(t *testing.T) {
 		t.Error("an error was not returned when setting the domain memory to 0")
 	}
 
-	if err := dom.SetMemory(NewMemory, DomainMemoryFlag(99)); err == nil {
+	if err := dom.SetMemory(newMemory, DomainMemoryFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid flag to set the domain memory")
 	}
 
@@ -414,7 +414,7 @@ func TestDomainMemory(t *testing.T) {
 		t.Errorf("wrong domain maximum memory; got=%d, want=%d", memory, DomTestMaxMemory)
 	}
 
-	if err = dom.SetMemory(NewMaxMemory, DomMemoryMaximum); err != nil {
+	if err = dom.SetMemory(newMaxMemory, DomMemoryMaximum); err != nil {
 		t.Fatal(err)
 	}
 
@@ -422,22 +422,22 @@ func TestDomainMemory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if memory != NewMaxMemory {
-		t.Errorf("wrong maximum memory; got=%d, want=%d", memory, NewMaxMemory)
+	if memory != newMaxMemory {
+		t.Errorf("wrong maximum memory; got=%d, want=%d", memory, newMaxMemory)
 	}
 
-	if err := dom.SetMemory(NewMaxMemory+1, DomMemoryCurrent); err == nil {
+	if err := dom.SetMemory(newMaxMemory+1, DomMemoryCurrent); err == nil {
 		t.Error("an error was not returned when setting a memory value greater than the maximum allowed")
 	}
 
-	if err = dom.SetMemory(NewMemory, DomMemoryCurrent); err != nil {
+	if err = dom.SetMemory(newMemory, DomMemoryCurrent); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestDomainVCPUs(t *testing.T) {
-	const NewMaxVCPUs = 8
-	const NewVCPUs = 3
+	const newMaxVCPUs = 8
+	const newVCPUs = 3
 
 	dom, conn := defineTestDomain(t)
 	defer conn.Close()
@@ -448,7 +448,7 @@ func TestDomainVCPUs(t *testing.T) {
 		t.Error("an error was not returned when setting an invalid VCPU number")
 	}
 
-	if err := dom.SetVCPUs(NewVCPUs, DomainVCPUsFlag(99)); err == nil {
+	if err := dom.SetVCPUs(newVCPUs, DomainVCPUsFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid flag to set VCPU")
 	}
 
@@ -465,15 +465,15 @@ func TestDomainVCPUs(t *testing.T) {
 		t.Errorf("wrong VCPUs number; got=%d, want=%d", vcpus, DomTestVCPUs)
 	}
 
-	if err = dom.SetVCPUs(NewMaxVCPUs, DomVCPUsMaximum); err != nil {
+	if err = dom.SetVCPUs(newMaxVCPUs, DomVCPUsMaximum); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = dom.SetVCPUs(NewMaxVCPUs+1, DomVCPUsCurrent); err == nil {
+	if err = dom.SetVCPUs(newMaxVCPUs+1, DomVCPUsCurrent); err == nil {
 		t.Error("an error was not returned when setting a VCPU number greater than the maximum allowed")
 	}
 
-	if err = dom.SetVCPUs(NewVCPUs, DomVCPUsCurrent); err != nil {
+	if err = dom.SetVCPUs(newVCPUs, DomVCPUsCurrent); err != nil {
 		t.Fatal(err)
 	}
 
@@ -481,8 +481,8 @@ func TestDomainVCPUs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if vcpus != NewVCPUs {
-		t.Errorf("wrong VCPUs count; got=%d, want=%d", vcpus, NewVCPUs)
+	if vcpus != newVCPUs {
+		t.Errorf("wrong VCPUs count; got=%d, want=%d", vcpus, newVCPUs)
 	}
 }
 

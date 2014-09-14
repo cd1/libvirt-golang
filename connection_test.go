@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	QEMUSystemURI  = "qemu:///system"
-	TestDefaultURI = "test:///default"
+	qemuSystemURI  = "qemu:///system"
+	testDefaultURI = "test:///default"
 )
 
 func openTestConnection(t testing.TB) Connection {
-	conn, err := Open(QEMUSystemURI)
+	conn, err := Open(qemuSystemURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestOpen(t *testing.T) {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
-	conn, err := Open(QEMUSystemURI)
+	conn, err := Open(qemuSystemURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestOpenReadOnly(t *testing.T) {
 		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
 
-	conn, err := OpenReadOnly(QEMUSystemURI)
+	conn, err := OpenReadOnly(qemuSystemURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,8 +150,8 @@ func TestURI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if uri != QEMUSystemURI {
-		t.Errorf("libvirt URI should be the same used to open the connection; got=%s, want=%s", uri, QEMUSystemURI)
+	if uri != qemuSystemURI {
+		t.Errorf("libvirt URI should be the same used to open the connection; got=%s, want=%s", uri, qemuSystemURI)
 	}
 }
 
@@ -355,7 +355,7 @@ func TestLookupDomainByUUID(t *testing.T) {
 
 func BenchmarkConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(QEMUSystemURI)
+		conn, err := Open(qemuSystemURI)
 		if err != nil {
 			b.Error(err)
 		}
@@ -368,7 +368,7 @@ func BenchmarkConnection(b *testing.B) {
 
 func BenchmarkTestConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(TestDefaultURI)
+		conn, err := Open(testDefaultURI)
 		if err != nil {
 			b.Error(err)
 		}
@@ -380,7 +380,7 @@ func BenchmarkTestConnection(b *testing.B) {
 }
 
 func BenchmarkCreateDomain(b *testing.B) {
-	conn, err := Open(QEMUSystemURI)
+	conn, err := Open(qemuSystemURI)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -413,7 +413,7 @@ func BenchmarkCreateDomain(b *testing.B) {
 }
 
 func BenchmarkDefineDomain(b *testing.B) {
-	conn, err := Open(QEMUSystemURI)
+	conn, err := Open(qemuSystemURI)
 	if err != nil {
 		b.Fatal(err)
 	}
