@@ -257,9 +257,9 @@ func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
 	modelsSH.Cap = ret
 	modelsSH.Len = ret
 
-	models := make([]string, 0, ret)
-	for i := 0; i < ret; i++ {
-		models = append(models, C.GoString(cModels[i]))
+	models := make([]string, ret)
+	for i := range models {
+		models[i] = C.GoString(cModels[i])
 		defer C.free(unsafe.Pointer(cModels[i]))
 	}
 
@@ -300,9 +300,9 @@ func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
 	domainsSH.Cap = ret
 	domainsSH.Len = ret
 
-	domains := make([]Domain, 0, ret)
-	for i := 0; i < ret; i++ {
-		domains = append(domains, Domain{cDomains[i]})
+	domains := make([]Domain, ret)
+	for i := range domains {
+		domains[i] = Domain{cDomains[i]}
 	}
 
 	return domains, nil
