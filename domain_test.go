@@ -684,6 +684,22 @@ func TestDomainSendProcessSignal(t *testing.T) {
 	}
 }
 
+func TestDomainListSnapshots(t *testing.T) {
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
+
+	snapshots, err := env.dom.ListSnapshots(SnapListAll)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, snap := range snapshots {
+		if err := snap.Free(); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkDomainSuspendResume(b *testing.B) {
 	env := newTestEnvironment(b).withDomain()
 	defer env.cleanUp()

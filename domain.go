@@ -6,6 +6,7 @@ import "C"
 import (
 	"errors"
 	"log"
+	"reflect"
 	"time"
 	"unicode/utf8"
 	"unsafe"
@@ -1270,4 +1271,38 @@ func (dom Domain) SendProcessSignal(pid int64, signal DomainProcessSignal) error
 	dom.log.Println("signal sent")
 
 	return nil
+}
+
+// ListSnapshots collects the list of domain snapshots for the given domain, and
+// allocate an array to store those objects.
+func (dom Domain) ListSnapshots(flags SnapshotListFlag) ([]Snapshot, error) {
+	var cSnaps []C.virDomainSnapshotPtr
+	snapsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cSnaps))
+
+	dom.log.Printf("reading domain snapshots (flags = %v)...\n", flags)
+	cRet := C.virDomainListAllSnapshots(dom.virDomain, (**C.virDomainSnapshotPtr)(unsafe.Pointer(&snapsSH.Data)), C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(snapsSH.Data))
+
+	snapsSH.Cap = int(ret)
+	snapsSH.Len = int(ret)
+
+	snaps := make([]Snapshot, ret)
+
+	for i := range snaps {
+		snaps[i] = Snapshot{
+			log:         dom.log,
+			virSnapshot: cSnaps[i],
+		}
+	}
+
+	dom.log.Printf("snapshots count: %v\n", len(snaps))
+
+	return snaps, nil
 }
