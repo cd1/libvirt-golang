@@ -19,10 +19,6 @@ func TestDomainInit(t *testing.T) {
 	env := newTestEnvironment(t).withDomain()
 	defer env.cleanUp()
 
-	if env.dom.HasCurrentSnapshot() {
-		t.Error("test domain should not have a current snapshot initially")
-	}
-
 	if env.dom.IsUpdated() {
 		t.Error("test domain should not have been updated initially")
 	}
@@ -685,7 +681,7 @@ func TestDomainSendProcessSignal(t *testing.T) {
 }
 
 func TestDomainListSnapshots(t *testing.T) {
-	env := newTestEnvironment(t).withDomain()
+	env := newTestEnvironment(t).withSnapshot()
 	defer env.cleanUp()
 
 	snapshots, err := env.dom.ListSnapshots(SnapListAll)
@@ -697,6 +693,44 @@ func TestDomainListSnapshots(t *testing.T) {
 		if err := snap.Free(); err != nil {
 			t.Error(err)
 		}
+	}
+}
+
+func TestDomainCreateAndDeleteSnapshot(t *testing.T) {
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
+
+	if env.dom.HasCurrentSnapshot() {
+		t.Error("test domain should not have a current snapshot initially")
+	}
+
+	if _, err := env.dom.CreateSnapshot("", SnapCreateDefault); err == nil {
+		t.Error("an error was not returned when using an empty XML descriptor")
+	}
+
+	var xml bytes.Buffer
+	data := newTestSnapshotData()
+
+	if err := testSnapshotTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := env.dom.CreateSnapshot(xml.String(), SnapshotCreateFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid create flag")
+	}
+
+	snap, err := env.dom.CreateSnapshot(xml.String(), SnapCreateDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snap.Free()
+
+	if !env.dom.HasCurrentSnapshot() {
+		t.Error("test domain should have a current snapshot")
+	}
+
+	if err := snap.Delete(SnapDeleteDefault); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -767,4 +801,34 @@ func BenchmarkDomainManagedSave(b *testing.B) {
 		}
 	}
 	b.StopTimer()
+}
+
+func BenchmarkDomainCreateSnapshot(b *testing.B) {
+	env := newTestEnvironment(b).withDomain()
+	defer env.cleanUp()
+
+	var xml bytes.Buffer
+	data := newTestSnapshotData()
+
+	if err := testSnapshotTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+
+	xmlStr := xml.String()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		snap, err := env.dom.CreateSnapshot(xmlStr, SnapCreateDefault)
+		if err != nil {
+			b.Error(err)
+		}
+
+		if err := snap.Delete(SnapDeleteDefault); err != nil {
+			b.Error(err)
+		}
+
+		if err := snap.Free(); err != nil {
+			b.Error(err)
+		}
+	}
 }

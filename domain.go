@@ -1306,3 +1306,26 @@ func (dom Domain) ListSnapshots(flags SnapshotListFlag) ([]Snapshot, error) {
 
 	return snaps, nil
 }
+
+// CreateSnapshot creates a new snapshot of a domain based on a snapshot XML.
+func (dom Domain) CreateSnapshot(xml string, flags SnapshotCreateFlag) (Snapshot, error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	dom.log.Printf("creating domain snapshot (flags = %v)...\n", flags)
+	cSnapshot := C.virDomainSnapshotCreateXML(dom.virDomain, cXML, C.uint(flags))
+	if cSnapshot == nil {
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return Snapshot{}, err
+	}
+
+	snap := Snapshot{
+		log:         dom.log,
+		virSnapshot: cSnapshot,
+	}
+
+	dom.log.Println("snapshot created")
+
+	return snap, nil
+}

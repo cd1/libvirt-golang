@@ -56,6 +56,11 @@ const testDomainXML = `
     </devices>
 </domain>`
 
+const testSnapshotXML = `
+<domainsnapshot>
+    <name>{{.Name}}</name>
+</domainsnapshot>`
+
 // Configuration variables. Feel free to change them.
 var (
 	testConnectionURI = "qemu:///session"
@@ -66,6 +71,7 @@ var (
 var (
 	testDomainMetadataTmpl = template.Must(template.New("test-domain-metadata").Parse(testDomainMetadataXML))
 	testDomainTmpl         = template.Must(template.New("test-domain").Parse(testDomainXML))
+	testSnapshotTmpl       = template.Must(template.New("test-snapshot").Parse(testSnapshotXML))
 )
 
 // testDomainData contains the data of a domain used for testing.
@@ -89,14 +95,21 @@ type testDomainData struct {
 	t                 testing.TB
 }
 
+// testSnapshotData contains the data of a snapshot used for testing.
+type testSnapshotData struct {
+	Name string
+}
+
 // testEnvironment represents the environment used for a test function. It is
 // responsible for opening the connection to libvirt, creating test domains and
 // other resources, and cleaning them up.
 type testEnvironment struct {
-	conn    *Connection
-	dom     *Domain
-	domData *testDomainData
-	t       testing.TB
+	conn     *Connection
+	dom      *Domain
+	domData  *testDomainData
+	snap     *Snapshot
+	snapData *testSnapshotData
+	t        testing.TB
 }
 
 // newTestDomainData creates new data for a test domain. Some values are
@@ -144,6 +157,14 @@ func (data *testDomainData) cleanUp() error {
 	return os.Remove(data.DiskPath)
 }
 
+// newTestSnapshotData creates new data for a test snapshot. The values are
+// generated randomly every time this function is called.
+func newTestSnapshotData() *testSnapshotData {
+	return &testSnapshotData{
+		Name: fmt.Sprintf("snapshot-%v", utils.RandomString()),
+	}
+}
+
 // newTestEnvironment creates a new test environment. Basically it opens a
 // connection to libvirt.
 func newTestEnvironment(t testing.TB) *testEnvironment {
@@ -169,6 +190,21 @@ func (env *testEnvironment) cleanUp() {
 
 		if state != DomStateShutoff {
 			if err := env.dom.Destroy(DomDestroyDefault); err != nil {
+				env.t.Error(err)
+			}
+		}
+
+		snapshots, err := env.dom.ListSnapshots(SnapListRoots)
+		if err != nil {
+			env.t.Error(err)
+		}
+
+		for _, snap := range snapshots {
+			if err = snap.Delete(SnapDeleteChildren); err != nil {
+				env.t.Error(err)
+			}
+
+			if err = snap.Free(); err != nil {
 				env.t.Error(err)
 			}
 		}
@@ -211,6 +247,30 @@ func (env *testEnvironment) withDomain() *testEnvironment {
 
 	env.domData = data
 	env.dom = &dom
+
+	return env
+}
+
+func (env *testEnvironment) withSnapshot() *testEnvironment {
+	if env.dom == nil {
+		env.withDomain()
+	}
+
+	data := newTestSnapshotData()
+
+	var xml bytes.Buffer
+
+	if err := testSnapshotTmpl.Execute(&xml, data); err != nil {
+		env.t.Fatal(err)
+	}
+
+	snap, err := env.dom.CreateSnapshot(xml.String(), SnapCreateDefault)
+	if err != nil {
+		env.t.Fatal(err)
+	}
+
+	env.snapData = data
+	env.snap = &snap
 
 	return env
 }
