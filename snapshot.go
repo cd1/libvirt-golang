@@ -5,6 +5,8 @@ package libvirt
 import "C"
 import (
 	"log"
+	"unicode/utf8"
+	"unsafe"
 )
 
 // SnapshotListFlag defines a filter when listing snapshots.
@@ -93,4 +95,52 @@ func (snap Snapshot) Delete(flags SnapshotDeleteFlag) error {
 	snap.log.Println("snapshot deleted")
 
 	return nil
+}
+
+// Name gets the public name for that snapshot.
+func (snap Snapshot) Name() string {
+	snap.log.Println("reading snapshot name...")
+	cName := C.virDomainSnapshotGetName(snap.virSnapshot)
+
+	name := C.GoString(cName)
+	snap.log.Printf("snapshot name: %v\n", name)
+
+	return name
+}
+
+// Parent gets the parent snapshot for "snap", if any.
+func (snap Snapshot) Parent() (Snapshot, error) {
+	snap.log.Println("reading snapshot parent...")
+	cParent := C.virDomainSnapshotGetParent(snap.virSnapshot, 0)
+	if cParent == nil {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return Snapshot{}, err
+	}
+
+	parent := Snapshot{
+		log:         snap.log,
+		virSnapshot: cParent,
+	}
+
+	snap.log.Println("parent obtained")
+
+	return parent, nil
+}
+
+// XML provides an XML description of the domain snapshot.
+func (snap Snapshot) XML(flags DomainXMLFlag) (string, error) {
+	snap.log.Printf("reading snapshot XML (flags = %v)...\n", flags)
+	cXML := C.virDomainSnapshotGetXMLDesc(snap.virSnapshot, C.uint(flags))
+	if cXML == nil {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
+	defer C.free(unsafe.Pointer(cXML))
+
+	xml := C.GoString(cXML)
+	snap.log.Printf("XML length: %v runes\n", utf8.RuneCountInString(xml))
+
+	return xml, nil
 }
