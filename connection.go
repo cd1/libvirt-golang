@@ -57,9 +57,9 @@ func OpenReadOnly(uri string) (Connection, *Error) {
 // positive value if some other object still has a temporary reference to the
 // connection, but the application should not try to further use a connection
 // after the Close that matches the initial open.
-func (conn Connection) Close() (int, *Error) {
+func (conn Connection) Close() (int32, *Error) {
 	cRet := C.virConnectClose(conn.virConnect)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -72,7 +72,7 @@ func (conn Connection) Close() (int, *Error) {
 func (conn Connection) Version() (uint64, *Error) {
 	var cVersion C.ulong
 	cRet := C.virConnectGetVersion(conn.virConnect, &cVersion)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -86,7 +86,7 @@ func (conn Connection) Version() (uint64, *Error) {
 func (conn Connection) LibVersion() (uint64, *Error) {
 	var cVersion C.ulong
 	cRet := C.virConnectGetLibVersion(conn.virConnect, &cVersion)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -100,7 +100,7 @@ func (conn Connection) LibVersion() (uint64, *Error) {
 // message will be written to the log.
 func (conn Connection) IsAlive() bool {
 	cRet := C.virConnectIsAlive(conn.virConnect)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == 1 {
 		return true
@@ -120,7 +120,7 @@ func (conn Connection) IsAlive() bool {
 // message will be written to the log.
 func (conn Connection) IsEncrypted() bool {
 	cRet := C.virConnectIsEncrypted(conn.virConnect)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == 1 {
 		return true
@@ -140,7 +140,7 @@ func (conn Connection) IsEncrypted() bool {
 // message will be written to the log.
 func (conn Connection) IsSecure() bool {
 	cRet := C.virConnectIsSecure(conn.virConnect)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == 1 {
 		return true
@@ -229,7 +229,7 @@ func (conn Connection) URI() (string, *Error) {
 // this object.
 func (conn Connection) Ref() *Error {
 	cRet := C.virConnectRef(conn.virConnect)
-	ret := int(cRet)
+	ret := int32(cRet)
 	if ret == -1 {
 		return LastError()
 	}
@@ -247,15 +247,15 @@ func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
 	modelsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cModels))
 
 	cRet := C.virConnectGetCPUModelNames(conn.virConnect, cArch, (***C.char)(unsafe.Pointer(&modelsSH.Data)), 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return nil, LastError()
 	}
 	defer C.free(unsafe.Pointer(modelsSH.Data))
 
-	modelsSH.Cap = ret
-	modelsSH.Len = ret
+	modelsSH.Cap = int(ret)
+	modelsSH.Len = int(ret)
 
 	models := make([]string, ret)
 	for i := range models {
@@ -269,12 +269,12 @@ func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
 // MaxVCPUs provides the maximum number of virtual CPUs supported for a guest
 // VM of a specific type. The 'type' parameter here corresponds to the 'type'
 // attribute in the <domain> element of the XML
-func (conn Connection) MaxVCPUs(typ string) (int, *Error) {
+func (conn Connection) MaxVCPUs(typ string) (int32, *Error) {
 	cTyp := C.CString(typ)
 	defer C.free(unsafe.Pointer(cTyp))
 
 	cRet := C.virConnectGetMaxVcpus(conn.virConnect, cTyp)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -290,15 +290,15 @@ func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
 	domainsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cDomains))
 
 	cRet := C.virConnectListAllDomains(conn.virConnect, (**C.virDomainPtr)(unsafe.Pointer(&domainsSH.Data)), C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return nil, LastError()
 	}
 	defer C.free(unsafe.Pointer(domainsSH.Data))
 
-	domainsSH.Cap = ret
-	domainsSH.Len = ret
+	domainsSH.Cap = int(ret)
+	domainsSH.Len = int(ret)
 
 	domains := make([]Domain, ret)
 	for i := range domains {
@@ -343,7 +343,7 @@ func (conn Connection) DefineDomain(xml string) (Domain, *Error) {
 // LookupDomainByID tries to find a domain based on the hypervisor ID number.
 // Note that this won't work for inactive domains which have an ID of -1, in
 // that case a lookup based on the Name or UUID need to be done instead.
-func (conn Connection) LookupDomainByID(id uint) (Domain, *Error) {
+func (conn Connection) LookupDomainByID(id uint32) (Domain, *Error) {
 	cDomain := C.virDomainLookupByID(conn.virConnect, C.int(id))
 	if cDomain == nil {
 		return Domain{}, LastError()
@@ -394,7 +394,7 @@ func (conn Connection) RestoreDomain(from string, xml string, flags DomainSaveFl
 	}
 
 	cRet := C.virDomainRestoreFlags(conn.virConnect, cFrom, cXML, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()

@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-type DomainFlag uint
+type DomainFlag uint32
 
 const (
 	DomActive DomainFlag = (1 << iota)
@@ -29,7 +29,7 @@ const (
 	DomAll = 0
 )
 
-type DomainMetadataType uint
+type DomainMetadataType uint32
 
 const (
 	DomMetaDescription DomainMetadataType = iota
@@ -37,7 +37,7 @@ const (
 	DomMetaElement
 )
 
-type DomainModificationImpact uint
+type DomainModificationImpact uint32
 
 const (
 	DomAffectCurrent = iota
@@ -45,7 +45,7 @@ const (
 	DomAffectConfig
 )
 
-type DomainXMLFlag uint
+type DomainXMLFlag uint32
 
 const (
 	DomXMLSecure DomainXMLFlag = (1 << iota)
@@ -55,7 +55,7 @@ const (
 	DomXMLDefault = 0
 )
 
-type DomainCreateFlag uint
+type DomainCreateFlag uint32
 
 const (
 	DomCreateStartPaused DomainCreateFlag = (1 << iota)
@@ -65,14 +65,14 @@ const (
 	DomCreateDefault = 0
 )
 
-type DomainDestroyFlag uint
+type DomainDestroyFlag uint32
 
 const (
 	DomDestroyGraceful DomainDestroyFlag = (1 << iota)
 	DomDestroyDefault                    = 0
 )
 
-type DomainUndefineFlag uint
+type DomainUndefineFlag uint32
 
 const (
 	DomUndefineManagedSave DomainUndefineFlag = (1 << iota)
@@ -80,7 +80,7 @@ const (
 	DomUndefineDefault = 0
 )
 
-type DomainRebootFlag uint
+type DomainRebootFlag uint32
 
 const (
 	DomRebootACPIPowerBtn DomainRebootFlag = (1 << iota)
@@ -90,7 +90,7 @@ const (
 	DomRebootDefault = 0
 )
 
-type DomainState uint
+type DomainState uint32
 
 const (
 	DomStateNone DomainState = iota
@@ -103,13 +103,13 @@ const (
 	DomStatePMSuspended
 )
 
-type DomainNostateReason uint
+type DomainNostateReason uint32
 
 const (
 	DomNostateReasonUnknown DomainNostateReason = iota
 )
 
-type DomainRunningReason uint
+type DomainRunningReason uint32
 
 const (
 	DomRunningReasonUnknown DomainRunningReason = iota
@@ -124,13 +124,13 @@ const (
 	DomRunningReasonCrashed
 )
 
-type DomainBlockedReason uint
+type DomainBlockedReason uint32
 
 const (
 	DomBlockedReasonUnkwown DomainBlockedReason = iota
 )
 
-type DomainPausedReason uint
+type DomainPausedReason uint32
 
 const (
 	DomPausedReasonUnknown DomainPausedReason = iota
@@ -146,14 +146,14 @@ const (
 	DomPausedReasonCrashed
 )
 
-type DomainShutdownReason uint
+type DomainShutdownReason uint32
 
 const (
 	DomShutdownReasonUnknown DomainShutdownReason = iota
 	DomShutdownReasonUser
 )
 
-type DomainShutoffReason uint
+type DomainShutoffReason uint32
 
 const (
 	DomShutoffReasonUnknown DomainShutoffReason = iota
@@ -166,20 +166,20 @@ const (
 	DomShutoffReasonFromSnapshot
 )
 
-type DomainCrashedReason uint
+type DomainCrashedReason uint32
 
 const (
 	DomCrashedReasonUnknown DomainCrashedReason = iota
 	DomCrashedReasonPanicked
 )
 
-type DomainPMSuspendedReason uint
+type DomainPMSuspendedReason uint32
 
 const (
 	DomPMSuspendedReasonUnknown DomainPMSuspendedReason = iota
 )
 
-type DomainDumpFlag uint
+type DomainDumpFlag uint32
 
 const (
 	DomDumpCrash DomainDumpFlag = (1 << iota)
@@ -190,7 +190,7 @@ const (
 	DomDumpDefault = 0
 )
 
-type DomainVCPUsFlag uint
+type DomainVCPUsFlag uint32
 
 const (
 	DomVCPusConfig  DomainVCPUsFlag = DomAffectConfig
@@ -200,7 +200,7 @@ const (
 	DomVCPUsGuest                   = 8
 )
 
-type DomainSaveFlag uint
+type DomainSaveFlag uint32
 
 const (
 	DomSaveBypassCache DomainSaveFlag = (1 << iota)
@@ -209,7 +209,7 @@ const (
 	DomSaveDefault = 0
 )
 
-type DomainDeviceModifyFlag uint
+type DomainDeviceModifyFlag uint32
 
 const (
 	DomDeviceModifyConfig  DomainDeviceModifyFlag = DomAffectConfig
@@ -218,7 +218,7 @@ const (
 	DomDeviceModifyForce                          = 4
 )
 
-type DomainMemoryFlag uint
+type DomainMemoryFlag uint32
 
 const (
 	DomMemoryConfig  DomainMemoryFlag = DomAffectConfig
@@ -227,7 +227,7 @@ const (
 	DomMemoryMaximum                  = 4
 )
 
-type DomainKeycodeSet uint
+type DomainKeycodeSet uint32
 
 const (
 	DomKeycodeSetLinux DomainKeycodeSet = iota
@@ -242,7 +242,7 @@ const (
 	DomKeycodeSetRFB
 )
 
-type DomainProcessSignal uint
+type DomainProcessSignal uint32
 
 const (
 	DomSIGNOP = iota
@@ -320,7 +320,7 @@ type Domain struct {
 // structure is freed and should not be used thereafter.
 func (dom Domain) Free() *Error {
 	cRet := C.virDomainFree(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -334,7 +334,7 @@ func (dom Domain) Free() *Error {
 func (dom Domain) Autostart() bool {
 	var cAutostart C.int
 	cRet := C.virDomainGetAutostart(dom.virDomain, &cAutostart)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		if err := LastError(); err != nil {
@@ -343,14 +343,14 @@ func (dom Domain) Autostart() bool {
 		return false
 	}
 
-	autostart := int(cAutostart)
+	autostart := int32(cAutostart)
 	return (autostart == 1)
 }
 
 // HasCurrentSnapshot determines if the domain has a current snapshot.
 func (dom Domain) HasCurrentSnapshot() bool {
 	cRet := C.virDomainHasCurrentSnapshot(dom.virDomain, 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		if err := LastError(); err != nil {
@@ -367,7 +367,7 @@ func (dom Domain) HasCurrentSnapshot() bool {
 // image, as it should have been removed on restart.
 func (dom Domain) HasManagedSaveImage() bool {
 	cRet := C.virDomainHasManagedSaveImage(dom.virDomain, 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		if err := LastError(); err != nil {
@@ -382,7 +382,7 @@ func (dom Domain) HasManagedSaveImage() bool {
 // IsActive determines if the domain is currently running.
 func (dom Domain) IsActive() bool {
 	cRet := C.virDomainIsActive(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		if err := LastError(); err != nil {
@@ -398,7 +398,7 @@ func (dom Domain) IsActive() bool {
 // means it will still exist after shutting down
 func (dom Domain) IsPersistent() bool {
 	cRet := C.virDomainIsPersistent(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		if err := LastError(); err != nil {
@@ -413,7 +413,7 @@ func (dom Domain) IsPersistent() bool {
 // IsUpdated determines if the domain has been updated.
 func (dom Domain) IsUpdated() bool {
 	cRet := C.virDomainIsUpdated(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		if err := LastError(); err != nil {
@@ -454,11 +454,11 @@ func (dom Domain) Hostname() (string, *Error) {
 }
 
 // ID gets the hypervisor ID number for the domain.
-func (dom Domain) ID() (uint, *Error) {
+func (dom Domain) ID() (uint32, *Error) {
 	cID := C.virDomainGetID(dom.virDomain)
-	id := uint(cID)
+	id := uint32(cID)
 
-	if id == ^uint(0) { // Go: ^uint(0) == C: (unsigned int) -1
+	if id == ^uint32(0) { // Go: ^uint32(0) == C: (unsigned int) -1
 		return 0, LastError()
 	}
 
@@ -472,7 +472,7 @@ func (dom Domain) UUID() (string, *Error) {
 	defer C.free(unsafe.Pointer(cUUID))
 
 	cRet := C.virDomainGetUUIDString(dom.virDomain, cUUID)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return "", LastError()
@@ -513,7 +513,7 @@ func (dom Domain) Metadata(typ DomainMetadataType, xmlns string, impact DomainMo
 // require privileged access.
 func (dom Domain) Destroy(flags DomainDestroyFlag) *Error {
 	cRet := C.virDomainDestroyFlags(dom.virDomain, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -526,7 +526,7 @@ func (dom Domain) Destroy(flags DomainDestroyFlag) *Error {
 // the defined to the running domains pools.
 func (dom Domain) Create(flags DomainCreateFlag) *Error {
 	cRet := C.virDomainCreateWithFlags(dom.virDomain, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -540,7 +540,7 @@ func (dom Domain) Create(flags DomainCreateFlag) *Error {
 // configuration is removed.
 func (dom Domain) Undefine(flags DomainUndefineFlag) *Error {
 	cRet := C.virDomainUndefineFlags(dom.virDomain, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -556,7 +556,7 @@ func (dom Domain) Undefine(flags DomainUndefineFlag) *Error {
 // of rebooting.
 func (dom Domain) Reboot(flags DomainRebootFlag) *Error {
 	cRet := C.virDomainReboot(dom.virDomain, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -572,7 +572,7 @@ func (dom Domain) Reboot(flags DomainRebootFlag) *Error {
 // OS shutdown.
 func (dom Domain) Reset() *Error {
 	cRet := C.virDomainReset(dom.virDomain, 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -592,7 +592,7 @@ func (dom Domain) Reset() *Error {
 // guest is no longer running.
 func (dom Domain) Shutdown() *Error {
 	cRet := C.virDomainShutdown(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -603,16 +603,16 @@ func (dom Domain) Shutdown() *Error {
 
 // State extracts domain state. Each state can be accompanied with a reason
 // (if known) which led to the state.
-func (dom Domain) State() (DomainState, int, *Error) {
+func (dom Domain) State() (DomainState, int32, *Error) {
 	var cState, cReason C.int
 	cRet := C.virDomainGetState(dom.virDomain, &cState, &cReason, 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, 0, LastError()
 	}
 
-	return DomainState(cState), int(cReason), nil
+	return DomainState(cState), int32(cReason), nil
 }
 
 // Suspend suspends an active domain, the process is frozen without further
@@ -622,7 +622,7 @@ func (dom Domain) State() (DomainState, int, *Error) {
 // supported if domain is in some special state like DomStatePMSuspended.
 func (dom Domain) Suspend() *Error {
 	cRet := C.virDomainSuspend(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -637,7 +637,7 @@ func (dom Domain) Suspend() *Error {
 // some special state like DomStatePMSuspended.
 func (dom Domain) Resume() *Error {
 	cRet := C.virDomainResume(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -655,7 +655,7 @@ func (dom Domain) CoreDump(file string, flags DomainDumpFlag) *Error {
 	defer C.free(unsafe.Pointer(cFile))
 
 	cRet := C.virDomainCoreDump(dom.virDomain, cFile, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -670,7 +670,7 @@ func (dom Domain) CoreDump(file string, flags DomainDumpFlag) *Error {
 // to this object.
 func (dom Domain) Ref() *Error {
 	cRet := C.virDomainRef(dom.virDomain)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -695,9 +695,9 @@ func (dom Domain) MaxMemory() (uint64, *Error) {
 // VCPUs queries the number of virtual CPUs used by the domain. Note that this
 // call may fail if the underlying virtualization hypervisor does not support
 // it. This function may require privileged access to the hypervisor.
-func (dom Domain) VCPUs(flags DomainVCPUsFlag) (int, *Error) {
+func (dom Domain) VCPUs(flags DomainVCPUsFlag) (int32, *Error) {
 	cRet := C.virDomainGetVcpusFlags(dom.virDomain, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -710,7 +710,7 @@ func (dom Domain) VCPUs(flags DomainVCPUsFlag) (int, *Error) {
 func (dom Domain) InfoState() (DomainState, *Error) {
 	var cInfo C.virDomainInfo
 	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -723,7 +723,7 @@ func (dom Domain) InfoState() (DomainState, *Error) {
 func (dom Domain) InfoMaxMemory() (uint64, *Error) {
 	var cInfo C.virDomainInfo
 	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -736,7 +736,7 @@ func (dom Domain) InfoMaxMemory() (uint64, *Error) {
 func (dom Domain) InfoMemory() (uint64, *Error) {
 	var cInfo C.virDomainInfo
 	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -749,7 +749,7 @@ func (dom Domain) InfoMemory() (uint64, *Error) {
 func (dom Domain) InfoVCPUs() (uint16, *Error) {
 	var cInfo C.virDomainInfo
 	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -762,7 +762,7 @@ func (dom Domain) InfoVCPUs() (uint16, *Error) {
 func (dom Domain) InfoCPUTime() (uint64, *Error) {
 	var cInfo C.virDomainInfo
 	cRet := C.virDomainGetInfo(dom.virDomain, &cInfo)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return 0, LastError()
@@ -788,7 +788,7 @@ func (dom Domain) Save(to string, xml string, flags DomainSaveFlag) *Error {
 	}
 
 	cRet := C.virDomainSaveFlags(dom.virDomain, cTo, cXML, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -812,7 +812,7 @@ func (dom Domain) AttachDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	defer C.free(unsafe.Pointer(cXML))
 
 	cRet := C.virDomainAttachDeviceFlags(dom.virDomain, cXML, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -836,7 +836,7 @@ func (dom Domain) DetachDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	defer C.free(unsafe.Pointer(cXML))
 
 	cRet := C.virDomainDetachDeviceFlags(dom.virDomain, cXML, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -860,7 +860,7 @@ func (dom Domain) UpdateDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	defer C.free(unsafe.Pointer(cXML))
 
 	cRet := C.virDomainUpdateDeviceFlags(dom.virDomain, cXML, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -880,7 +880,7 @@ func (dom Domain) SetAutostart(autostart bool) *Error {
 	}
 
 	cRet := C.virDomainSetAutostart(dom.virDomain, cAutostart)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -893,7 +893,7 @@ func (dom Domain) SetAutostart(autostart bool) *Error {
 // to a domain. This function may require privileged access to the hypervisor.
 func (dom Domain) SetMemory(memory uint64, flags DomainMemoryFlag) *Error {
 	cRet := C.virDomainSetMemoryFlags(dom.virDomain, C.ulong(memory), C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -918,7 +918,7 @@ func (dom Domain) SetMetadata(typ DomainMetadataType, metadata string, key strin
 	defer C.free(unsafe.Pointer(cURI))
 
 	cRet := C.virDomainSetMetadata(dom.virDomain, C.int(typ), cMetadata, cKey, cURI, C.uint(impact))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -931,9 +931,9 @@ func (dom Domain) SetMetadata(typ DomainMetadataType, metadata string, key strin
 // Note that this call may fail if the underlying virtualization hypervisor
 // does not support it or if growing the number is arbitrary limited. This
 // function may require privileged access to the hypervisor.
-func (dom Domain) SetVCPUs(vcpus uint, flags DomainVCPUsFlag) *Error {
+func (dom Domain) SetVCPUs(vcpus uint32, flags DomainVCPUsFlag) *Error {
 	cRet := C.virDomainSetVcpusFlags(dom.virDomain, C.uint(vcpus), C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -952,7 +952,7 @@ func (dom Domain) SetVCPUs(vcpus uint, flags DomainVCPUsFlag) *Error {
 // exist in order to use Create() to restart it.
 func (dom Domain) ManagedSave(flags DomainSaveFlag) *Error {
 	cRet := C.virDomainManagedSave(dom.virDomain, C.uint(flags))
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -964,7 +964,7 @@ func (dom Domain) ManagedSave(flags DomainSaveFlag) *Error {
 // ManagedSaveRemove removes any managed save image for this domain.
 func (dom Domain) ManagedSaveRemove() *Error {
 	cRet := C.virDomainManagedSaveRemove(dom.virDomain, 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -976,7 +976,7 @@ func (dom Domain) ManagedSaveRemove() *Error {
 // SendKey send key(s) to the guest.
 func (dom Domain) SendKey(codeSet DomainKeycodeSet, hold time.Duration, keycodes []uint32) *Error {
 	cRet := C.virDomainSendKey(dom.virDomain, C.uint(codeSet), C.uint(hold*time.Millisecond), (*C.uint)(unsafe.Pointer(&keycodes[0])), C.int(len(keycodes)), 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()
@@ -988,7 +988,7 @@ func (dom Domain) SendKey(codeSet DomainKeycodeSet, hold time.Duration, keycodes
 // SendProcessSignal sends a signal to the designated process in the guest.
 func (dom Domain) SendProcessSignal(pid int64, signal DomainProcessSignal) *Error {
 	cRet := C.virDomainSendProcessSignal(dom.virDomain, C.longlong(pid), C.uint(signal), 0)
-	ret := int(cRet)
+	ret := int32(cRet)
 
 	if ret == -1 {
 		return LastError()

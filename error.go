@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-type ErrorCode uint
+type ErrorCode uint32
 
 const (
 	ErrOK ErrorCode = iota
@@ -103,7 +103,7 @@ const (
 	ErrStorageVolExist
 )
 
-type ErrorDomain uint
+type ErrorDomain uint32
 
 const (
 	ErrDomNone ErrorDomain = iota
@@ -166,7 +166,7 @@ const (
 	ErrDomBhyve
 )
 
-type ErrorLevel uint
+type ErrorLevel uint32
 
 const (
 	ErrLvlNone ErrorLevel = (0 << iota)
@@ -180,7 +180,7 @@ type Error struct {
 	Message          string
 	Level            ErrorLevel
 	Str1, Str2, Str3 string
-	Int1, Int2       int
+	Int1, Int2       int32
 }
 
 func (err *Error) Error() string {
@@ -202,8 +202,8 @@ func NewError(virError C.virErrorPtr) *Error {
 		C.GoString(virError.str1),
 		C.GoString(virError.str2),
 		C.GoString(virError.str2),
-		int(virError.int1),
-		int(virError.int2),
+		int32(virError.int1),
+		int32(virError.int2),
 	}
 }
 
