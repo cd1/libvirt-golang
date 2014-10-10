@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"time"
+	"unicode/utf8"
 	"unsafe"
 )
 
@@ -314,18 +315,24 @@ const (
 )
 
 type Domain struct {
+	log       *log.Logger
 	virDomain C.virDomainPtr
 }
 
 // Free frees the domain object. The running instance is kept alive. The data
 // structure is freed and should not be used thereafter.
 func (dom Domain) Free() *Error {
+	dom.log.Println("freeing domain object...")
 	cRet := C.virDomainFree(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain freed")
 
 	return nil
 }
@@ -334,134 +341,201 @@ func (dom Domain) Free() *Error {
 // to be automatically started when the host machine boots.
 func (dom Domain) Autostart() bool {
 	var cAutostart C.int
+	dom.log.Println("checking whether domain autostarts...")
 	cRet := C.virDomainGetAutostart(dom.virDomain, &cAutostart)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		if err := LastError(); err != nil {
-			log.Println(err)
-		}
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
 		return false
 	}
 
-	autostart := int32(cAutostart)
-	return (autostart == 1)
+	autostart := (int32(cAutostart) == 1)
+	if autostart {
+		dom.log.Println("domain autostarts")
+	} else {
+		dom.log.Println("domain does not autostart")
+	}
+
+	return autostart
 }
 
 // HasCurrentSnapshot determines if the domain has a current snapshot.
 func (dom Domain) HasCurrentSnapshot() bool {
+	dom.log.Println("checking whether domain has current snapshot...")
 	cRet := C.virDomainHasCurrentSnapshot(dom.virDomain, 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		if err := LastError(); err != nil {
-			log.Println(err)
-		}
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
 		return false
 	}
 
-	return (ret == 1)
+	hasCurrentSnapshot := (ret == 1)
+
+	if hasCurrentSnapshot {
+		dom.log.Println("domain has current snapshot")
+	} else {
+		dom.log.Println("domain does not have current snapshot")
+	}
+
+	return hasCurrentSnapshot
 }
 
 // HasManagedSaveImage checks if a domain has a managed save image as created
 // by ManagedSave(). Note that any running domain should not have such an
 // image, as it should have been removed on restart.
 func (dom Domain) HasManagedSaveImage() bool {
+	dom.log.Println("checking whether domain has managed save...")
 	cRet := C.virDomainHasManagedSaveImage(dom.virDomain, 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		if err := LastError(); err != nil {
-			log.Println(err)
-		}
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
 		return false
 	}
 
-	return (ret == 1)
+	hasManagedSave := (ret == 1)
+
+	if hasManagedSave {
+		dom.log.Println("domain has managed save")
+	} else {
+		dom.log.Println("domain does not have managed save")
+	}
+
+	return hasManagedSave
 }
 
 // IsActive determines if the domain is currently running.
 func (dom Domain) IsActive() bool {
+	dom.log.Println("checking whether domain is active...")
 	cRet := C.virDomainIsActive(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		if err := LastError(); err != nil {
-			log.Println(err)
-		}
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
 		return false
 	}
 
-	return (ret == 1)
+	active := (ret == 1)
+	if active {
+		dom.log.Println("domain is active")
+	} else {
+		dom.log.Println("domain is not active")
+	}
+
+	return active
 }
 
 // IsPersistent determines if the domain has a persistent configuration which
 // means it will still exist after shutting down
 func (dom Domain) IsPersistent() bool {
+	dom.log.Println("checking whether domain is persistent...")
 	cRet := C.virDomainIsPersistent(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		if err := LastError(); err != nil {
-			log.Println(err)
-		}
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
 		return false
 	}
 
-	return (ret == 1)
+	persistent := (ret == 1)
+
+	if persistent {
+		dom.log.Println("domain is persistent")
+	} else {
+		dom.log.Println("domain is not persistent")
+	}
+
+	return persistent
 }
 
 // IsUpdated determines if the domain has been updated.
 func (dom Domain) IsUpdated() bool {
+	dom.log.Println("checking whether domain is updated...")
 	cRet := C.virDomainIsUpdated(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		if err := LastError(); err != nil {
-			log.Println(err)
-		}
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
 		return false
 	}
 
-	return (ret == 1)
+	updated := (ret == 1)
+
+	if updated {
+		dom.log.Println("domain is updated")
+	} else {
+		dom.log.Println("domain is not updated")
+	}
+
+	return updated
 }
 
 // OSType gets the type of domain operation system.
 func (dom Domain) OSType() (string, *Error) {
-	os := C.virDomainGetOSType(dom.virDomain)
-	if os == nil {
-		return "", LastError()
+	dom.log.Println("reading domain OS type...")
+	cOS := C.virDomainGetOSType(dom.virDomain)
+	if cOS == nil {
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return "", err
 	}
-	defer C.free(unsafe.Pointer(os))
+	defer C.free(unsafe.Pointer(cOS))
 
-	return C.GoString(os), nil
+	os := C.GoString(cOS)
+	dom.log.Printf("OS type: %v\n", os)
+
+	return os, nil
 }
 
 // Name gets the public name for that domain.
 func (dom Domain) Name() string {
+	dom.log.Println("reading domain name...")
 	cName := C.virDomainGetName(dom.virDomain)
-	return C.GoString(cName)
+
+	name := C.GoString(cName)
+	dom.log.Printf("domain name: %v\n", name)
+
+	return name
 }
 
 // Hostname gets the hostname for that domain.
 func (dom Domain) Hostname() (string, *Error) {
+	dom.log.Println("reading domain hostname...")
 	cHostname := C.virDomainGetHostname(dom.virDomain, 0)
 	if cHostname == nil {
-		return "", LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return "", err
 	}
 	defer C.free(unsafe.Pointer(cHostname))
 
-	return C.GoString(cHostname), nil
+	hostname := C.GoString(cHostname)
+	dom.log.Printf("domain hostname: %v\n", hostname)
+
+	return hostname, nil
 }
 
 // ID gets the hypervisor ID number for the domain.
 func (dom Domain) ID() (uint32, error) {
+	dom.log.Println("reading domain ID...")
 	cID := C.virDomainGetID(dom.virDomain)
 	id := uint32(cID)
 
 	if id == ^uint32(0) { // Go: ^uint32(0) == C: (unsigned int) -1
-		return 0, errors.New("domain doesn't have an ID")
+		err := errors.New("domain doesn't have an ID")
+		dom.log.Printf("an error occurred: %v\n", err)
+		return 0, err
 	}
+
+	dom.log.Printf("domain ID: %v\n", id)
 
 	return id, nil
 }
@@ -472,26 +546,38 @@ func (dom Domain) UUID() (string, *Error) {
 	cUUID := (*C.char)(C.malloc(C.size_t(C.VIR_UUID_STRING_BUFLEN)))
 	defer C.free(unsafe.Pointer(cUUID))
 
+	dom.log.Println("reading domain UUID...")
 	cRet := C.virDomainGetUUIDString(dom.virDomain, cUUID)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return "", LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return "", err
 	}
 
-	return C.GoString(cUUID), nil
+	uuid := C.GoString(cUUID)
+	dom.log.Printf("UUID: %v\n", uuid)
+
+	return uuid, nil
 }
 
 // XML provides an XML description of the domain. The description may be reused
 // later to relaunch the domain with CreateXML().
 func (dom Domain) XML(typ DomainXMLFlag) (string, *Error) {
+	dom.log.Printf("reading domain XML (flags = %v)...\n", typ)
 	cXML := C.virDomainGetXMLDesc(dom.virDomain, C.uint(typ))
 	if cXML == nil {
-		return "", LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return "", err
 	}
 	defer C.free(unsafe.Pointer(cXML))
 
-	return C.GoString(cXML), nil
+	xml := C.GoString(cXML)
+	dom.log.Printf("XML length: %v runes\n", utf8.RuneCountInString(xml))
+
+	return xml, nil
 }
 
 // Metadata retrieves the appropriate domain element given by "type".
@@ -499,13 +585,19 @@ func (dom Domain) Metadata(typ DomainMetadataType, xmlns string, impact DomainMo
 	cXMLNS := C.CString(xmlns)
 	defer C.free(unsafe.Pointer(cXMLNS))
 
+	dom.log.Printf("reading domain metadata (type = %v, namespace = %v, impact = %v)...\n", typ, xmlns, impact)
 	cMetadata := C.virDomainGetMetadata(dom.virDomain, C.int(typ), cXMLNS, C.uint(impact))
 	if cMetadata == nil {
-		return "", LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return "", err
 	}
 	defer C.free(unsafe.Pointer(cMetadata))
 
-	return C.GoString(cMetadata), nil
+	metadata := C.GoString(cMetadata)
+	dom.log.Printf("metadata XML length: %v runes\n", utf8.RuneCountInString(metadata))
+
+	return metadata, nil
 }
 
 // Destroy destroys the domain object. The running instance is shutdown if not
@@ -513,12 +605,17 @@ func (dom Domain) Metadata(typ DomainMetadataType, xmlns string, impact DomainMo
 // This does not free the associated virDomainPtr object. This function may
 // require privileged access.
 func (dom Domain) Destroy(flags DomainDestroyFlag) *Error {
+	dom.log.Printf("destroying domain (flags = %v)...\n", flags)
 	cRet := C.virDomainDestroyFlags(dom.virDomain, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain destroyed")
 
 	return nil
 }
@@ -526,12 +623,17 @@ func (dom Domain) Destroy(flags DomainDestroyFlag) *Error {
 // Create launches a defined domain. If the call succeeds the domain moves from
 // the defined to the running domains pools.
 func (dom Domain) Create(flags DomainCreateFlag) *Error {
+	dom.log.Printf("starting domain (flags = %v)...\n", flags)
 	cRet := C.virDomainCreateWithFlags(dom.virDomain, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain started")
 
 	return nil
 }
@@ -540,12 +642,17 @@ func (dom Domain) Create(flags DomainCreateFlag) *Error {
 // transient domain, without stopping it. If the domain is inactive, the domain
 // configuration is removed.
 func (dom Domain) Undefine(flags DomainUndefineFlag) *Error {
+	dom.log.Printf("undefining domain (flags = %v)...\n", flags)
 	cRet := C.virDomainUndefineFlags(dom.virDomain, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain undefined")
 
 	return nil
 }
@@ -556,12 +663,17 @@ func (dom Domain) Undefine(flags DomainUndefineFlag) *Error {
 // domain 'on_reboot' XML setting resulting in a domain that shuts down instead
 // of rebooting.
 func (dom Domain) Reboot(flags DomainRebootFlag) *Error {
+	dom.log.Printf("rebooting domain (flags = %v)...\n", flags)
 	cRet := C.virDomainReboot(dom.virDomain, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain rebooted")
 
 	return nil
 }
@@ -572,12 +684,17 @@ func (dom Domain) Reboot(flags DomainRebootFlag) *Error {
 // Note that there is a risk of data loss caused by reset without any guest
 // OS shutdown.
 func (dom Domain) Reset() *Error {
+	dom.log.Println("resetting domain...")
 	cRet := C.virDomainReset(dom.virDomain, 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain reset")
 
 	return nil
 }
@@ -592,12 +709,17 @@ func (dom Domain) Reset() *Error {
 // as soon as the shutdown request is issued rather than blocking until the
 // guest is no longer running.
 func (dom Domain) Shutdown() *Error {
+	dom.log.Println("shutting down domain...")
 	cRet := C.virDomainShutdown(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain shut down")
 
 	return nil
 }
@@ -606,14 +728,21 @@ func (dom Domain) Shutdown() *Error {
 // (if known) which led to the state.
 func (dom Domain) State() (DomainState, int32, *Error) {
 	var cState, cReason C.int
+	dom.log.Println("reading domain state...")
 	cRet := C.virDomainGetState(dom.virDomain, &cState, &cReason, 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return 0, 0, LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return 0, 0, err
 	}
 
-	return DomainState(cState), int32(cReason), nil
+	state := DomainState(cState)
+	reason := int32(cReason)
+	dom.log.Printf("state: %v (reason = %v)\n", state, reason)
+
+	return state, reason, nil
 }
 
 // Suspend suspends an active domain, the process is frozen without further
@@ -622,12 +751,17 @@ func (dom Domain) State() (DomainState, int32, *Error) {
 // This function may require privileged access. Moreover, suspend may not be
 // supported if domain is in some special state like DomStatePMSuspended.
 func (dom Domain) Suspend() *Error {
+	dom.log.Println("suspending domain...")
 	cRet := C.virDomainSuspend(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain suspended")
 
 	return nil
 }
@@ -637,12 +771,17 @@ func (dom Domain) Suspend() *Error {
 // privileged access. Moreover, resume may not be supported if domain is in
 // some special state like DomStatePMSuspended.
 func (dom Domain) Resume() *Error {
+	dom.log.Println("resuming domain...")
 	cRet := C.virDomainResume(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain resumed")
 
 	return nil
 }
@@ -655,12 +794,17 @@ func (dom Domain) CoreDump(file string, flags DomainDumpFlag) *Error {
 	cFile := C.CString(file)
 	defer C.free(unsafe.Pointer(cFile))
 
+	dom.log.Printf("dumping domain's core to file %v (flags = %v)...", file, flags)
 	cRet := C.virDomainCoreDump(dom.virDomain, cFile, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("core dump saved")
 
 	return nil
 }
@@ -670,12 +814,17 @@ func (dom Domain) CoreDump(file string, flags DomainDumpFlag) *Error {
 // release the reference count, once the caller no longer needs the reference
 // to this object.
 func (dom Domain) Ref() *Error {
+	dom.log.Println("incrementing domain's reference count...")
 	cRet := C.virDomainRef(dom.virDomain)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("reference count incremented")
 
 	return nil
 }
@@ -683,12 +832,17 @@ func (dom Domain) Ref() *Error {
 // MaxMemory retrieves the maximum amount of physical memory allocated to
 // a domain.
 func (dom Domain) MaxMemory() (uint64, *Error) {
+	dom.log.Println("reading domain maximum memory...")
 	cRet := C.virDomainGetMaxMemory(dom.virDomain)
 	ret := uint64(cRet)
 
 	if ret == 0 {
-		return 0, LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return 0, err
 	}
+
+	dom.log.Printf("max memory: %v kiB\n", ret)
 
 	return ret, nil
 }
@@ -697,12 +851,17 @@ func (dom Domain) MaxMemory() (uint64, *Error) {
 // call may fail if the underlying virtualization hypervisor does not support
 // it. This function may require privileged access to the hypervisor.
 func (dom Domain) VCPUs(flags DomainVCPUsFlag) (int32, *Error) {
+	dom.log.Println("reading domain VCPUs count...")
 	cRet := C.virDomainGetVcpusFlags(dom.virDomain, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return 0, LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return 0, err
 	}
+
+	dom.log.Printf("VCPUs count: %v\n", ret)
 
 	return ret, nil
 }
@@ -788,12 +947,17 @@ func (dom Domain) Save(to string, xml string, flags DomainSaveFlag) *Error {
 		cXML = nil
 	}
 
+	dom.log.Printf("saving domain's memory to file %v (flags = %v)...\n", to, flags)
 	cRet := C.virDomainSaveFlags(dom.virDomain, cTo, cXML, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain saved")
 
 	return nil
 }
@@ -812,12 +976,17 @@ func (dom Domain) AttachDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	cXML := C.CString(deviceXML)
 	defer C.free(unsafe.Pointer(cXML))
 
+	dom.log.Printf("attaching a virtual device to domain (flags = %v)...\n", flags)
 	cRet := C.virDomainAttachDeviceFlags(dom.virDomain, cXML, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("device attached")
 
 	return nil
 }
@@ -836,12 +1005,17 @@ func (dom Domain) DetachDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	cXML := C.CString(deviceXML)
 	defer C.free(unsafe.Pointer(cXML))
 
+	dom.log.Printf("detaching a virtual device from domain (flags = %v)...\n", flags)
 	cRet := C.virDomainDetachDeviceFlags(dom.virDomain, cXML, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("device detached")
 
 	return nil
 }
@@ -860,12 +1034,17 @@ func (dom Domain) UpdateDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 	cXML := C.CString(deviceXML)
 	defer C.free(unsafe.Pointer(cXML))
 
+	dom.log.Printf("updating a virtual device on domain (flags = %v)...\n", flags)
 	cRet := C.virDomainUpdateDeviceFlags(dom.virDomain, cXML, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("device updated")
 
 	return nil
 }
@@ -875,8 +1054,10 @@ func (dom Domain) UpdateDevice(deviceXML string, flags DomainDeviceModifyFlag) *
 func (dom Domain) SetAutostart(autostart bool) *Error {
 	var cAutostart C.int
 	if autostart {
+		dom.log.Println("enabling domain autostart...")
 		cAutostart = 1
 	} else {
+		dom.log.Println("disabling domain autostart...")
 		cAutostart = 0
 	}
 
@@ -884,7 +1065,15 @@ func (dom Domain) SetAutostart(autostart bool) *Error {
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	if autostart {
+		dom.log.Println("autostart enabled")
+	} else {
+		dom.log.Println("autostart disabled")
 	}
 
 	return nil
@@ -893,12 +1082,17 @@ func (dom Domain) SetAutostart(autostart bool) *Error {
 // SetMemory dynamically changes the target amount of physical memory allocated
 // to a domain. This function may require privileged access to the hypervisor.
 func (dom Domain) SetMemory(memory uint64, flags DomainMemoryFlag) *Error {
+	dom.log.Printf("changing domain memory to %v kiB (flags = %v)...\n", memory, flags)
 	cRet := C.virDomainSetMemoryFlags(dom.virDomain, C.ulong(memory), C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("memory changed")
 
 	return nil
 }
@@ -918,12 +1112,17 @@ func (dom Domain) SetMetadata(typ DomainMetadataType, metadata string, key strin
 	cURI := C.CString(uri)
 	defer C.free(unsafe.Pointer(cURI))
 
+	dom.log.Printf("changing domain metadata key '<%v:%v>' (type = %v, impact = %v)...\n", key, uri, typ, impact)
 	cRet := C.virDomainSetMetadata(dom.virDomain, C.int(typ), cMetadata, cKey, cURI, C.uint(impact))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("metadata changed")
 
 	return nil
 }
@@ -933,12 +1132,17 @@ func (dom Domain) SetMetadata(typ DomainMetadataType, metadata string, key strin
 // does not support it or if growing the number is arbitrary limited. This
 // function may require privileged access to the hypervisor.
 func (dom Domain) SetVCPUs(vcpus uint32, flags DomainVCPUsFlag) *Error {
+	dom.log.Printf("changing domain VCPUs count to %v (flags = %v)...\n", vcpus, flags)
 	cRet := C.virDomainSetVcpusFlags(dom.virDomain, C.uint(vcpus), C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("VCPUs count changed")
 
 	return nil
 }
@@ -952,48 +1156,68 @@ func (dom Domain) SetVCPUs(vcpus uint32, flags DomainVCPUsFlag) *Error {
 // managed save only works on persistent domains, since the domain must still
 // exist in order to use Create() to restart it.
 func (dom Domain) ManagedSave(flags DomainSaveFlag) *Error {
+	dom.log.Printf("saving domain's memory to a libvirt-managed location (flags = %v)...\n", flags)
 	cRet := C.virDomainManagedSave(dom.virDomain, C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("domain saved")
 
 	return nil
 }
 
 // ManagedSaveRemove removes any managed save image for this domain.
 func (dom Domain) ManagedSaveRemove() *Error {
+	dom.log.Println("removing libvirt-managed domain save image...")
 	cRet := C.virDomainManagedSaveRemove(dom.virDomain, 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("save image removed")
 
 	return nil
 }
 
 // SendKey send key(s) to the guest.
 func (dom Domain) SendKey(codeSet DomainKeycodeSet, hold time.Duration, keycodes []uint32) *Error {
+	dom.log.Printf("sending keys %v (keycode set = %v) to domain during %v...\n", keycodes, codeSet, time.Duration(hold))
 	cRet := C.virDomainSendKey(dom.virDomain, C.uint(codeSet), C.uint(hold*time.Millisecond), (*C.uint)(unsafe.Pointer(&keycodes[0])), C.int(len(keycodes)), 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("keys sent")
 
 	return nil
 }
 
 // SendProcessSignal sends a signal to the designated process in the guest.
 func (dom Domain) SendProcessSignal(pid int64, signal DomainProcessSignal) *Error {
+	dom.log.Printf("sending signal %v to domain's process %v...\n", signal, pid)
 	cRet := C.virDomainSendProcessSignal(dom.virDomain, C.longlong(pid), C.uint(signal), 0)
 	ret := int32(cRet)
 
 	if ret == -1 {
-		return LastError()
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
+
+	dom.log.Println("signal sent")
 
 	return nil
 }
