@@ -162,10 +162,9 @@ func TestDomainHostname(t *testing.T) {
 }
 
 func TestDomainID(t *testing.T) {
-	dom, conn := defineTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
 
 	_, err := dom.ID()
 	if err != nil {
