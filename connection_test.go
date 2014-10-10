@@ -289,24 +289,24 @@ func TestLookupDomainByID(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
-	if _, err := conn.LookupDomainByID(99); err == nil {
+	if _, virtErr := conn.LookupDomainByID(99); virtErr == nil {
 		t.Error("an error was not returned when looking up a non-existing domain ID")
 	}
 
-	expectedID, err := dom.ID()
-	if err != nil {
-		t.Fatal(err)
+	expectedID, virtErr := dom.ID()
+	if virtErr != nil {
+		t.Fatal(virtErr)
 	}
 
-	dom, err = conn.LookupDomainByID(expectedID)
+	dom, err := conn.LookupDomainByID(expectedID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dom.Free()
 
-	id, err := dom.ID()
-	if err != nil {
-		t.Error(err)
+	id, virtErr := dom.ID()
+	if virtErr != nil {
+		t.Error(virtErr)
 	}
 
 	if id != expectedID {

@@ -4,6 +4,7 @@ package libvirt
 // #include <libvirt/libvirt.h>
 import "C"
 import (
+	"errors"
 	"log"
 	"time"
 	"unsafe"
@@ -454,12 +455,12 @@ func (dom Domain) Hostname() (string, *Error) {
 }
 
 // ID gets the hypervisor ID number for the domain.
-func (dom Domain) ID() (uint32, *Error) {
+func (dom Domain) ID() (uint32, error) {
 	cID := C.virDomainGetID(dom.virDomain)
 	id := uint32(cID)
 
 	if id == ^uint32(0) { // Go: ^uint32(0) == C: (unsigned int) -1
-		return 0, LastError()
+		return 0, errors.New("domain doesn't have an ID")
 	}
 
 	return id, nil
