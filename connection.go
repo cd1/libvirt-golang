@@ -15,6 +15,11 @@ type Connection struct {
 	virConnect C.virConnectPtr
 }
 
+// DefaultURI is the URI chosen by libvirt to establish a default
+// connection, based on the current environment.
+// Check http://libvirt.org/uri.html for more details.
+const DefaultURI = ""
+
 // Open creates a new libvirt connection to the Hypervisor. The URIs are
 // documented at http://libvirt.org/uri.html.
 func Open(uri string) (Connection, *Error) {
