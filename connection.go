@@ -1,8 +1,15 @@
 package libvirt
 
-// #cgo pkg-config: libvirt
-// #include <stdlib.h>
-// #include <libvirt/libvirt.h>
+/*
+#cgo pkg-config: libvirt
+#include <stdlib.h>
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
+
+void emptyErrorFunc(void *userData, virErrorPtr error) {
+    // do nothing
+}
+*/
 import "C"
 import (
 	"errors"
@@ -35,6 +42,12 @@ const DefaultURI = ""
 // ErrInvalidConnectionMode is returned by "Open" when a value other than
 // "ReadOnly" or "ReadWrite" is used.
 var ErrInvalidConnectionMode = errors.New("invalid libvirt connection mode")
+
+func init() {
+	// Supress the native error output. There's no way to do this per
+	// connection, so we have to do this globally.
+	C.virSetErrorFunc(nil, C.virErrorFunc(unsafe.Pointer(C.emptyErrorFunc)))
+}
 
 // newLogger creates a logger object to be used across a libvirt
 // connection. It prints the messages to the default error output.
