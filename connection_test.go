@@ -13,7 +13,7 @@ const (
 )
 
 func openTestConnection(t testing.TB) Connection {
-	conn, err := Open(qemuSystemURI)
+	conn, err := Open(qemuSystemURI, ReadWrite)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,11 +22,11 @@ func openTestConnection(t testing.TB) Connection {
 }
 
 func TestOpen(t *testing.T) {
-	if _, err := Open(utils.RandomString()); err == nil {
+	if _, err := Open(utils.RandomString(), ReadWrite); err == nil {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
-	conn, err := Open(qemuSystemURI)
+	conn, err := Open(qemuSystemURI, ReadWrite)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +44,11 @@ func TestOpen(t *testing.T) {
 }
 
 func TestOpenReadOnly(t *testing.T) {
-	if _, err := OpenReadOnly(utils.RandomString()); err == nil {
+	if _, err := Open(utils.RandomString(), ReadOnly); err == nil {
 		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
 
-	conn, err := OpenReadOnly(qemuSystemURI)
+	conn, err := Open(qemuSystemURI, ReadOnly)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +361,7 @@ func TestLookupDomainByUUID(t *testing.T) {
 
 func BenchmarkQEMUConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(qemuSystemURI)
+		conn, err := Open(qemuSystemURI, ReadWrite)
 		if err != nil {
 			b.Error(err)
 		}
@@ -374,7 +374,7 @@ func BenchmarkQEMUConnection(b *testing.B) {
 
 func BenchmarkTestConnection(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(testDefaultURI)
+		conn, err := Open(testDefaultURI, ReadWrite)
 		if err != nil {
 			b.Error(err)
 		}
@@ -386,7 +386,7 @@ func BenchmarkTestConnection(b *testing.B) {
 }
 
 func BenchmarkCreateDomain(b *testing.B) {
-	conn, err := Open(qemuSystemURI)
+	conn, err := Open(qemuSystemURI, ReadWrite)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -419,7 +419,7 @@ func BenchmarkCreateDomain(b *testing.B) {
 }
 
 func BenchmarkDefineDomain(b *testing.B) {
-	conn, err := Open(qemuSystemURI)
+	conn, err := Open(qemuSystemURI, ReadWrite)
 	if err != nil {
 		b.Fatal(err)
 	}

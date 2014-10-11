@@ -5,6 +5,7 @@ package libvirt
 // #include <libvirt/libvirt.h>
 import "C"
 import (
+	"errors"
 	"log"
 	"reflect"
 	"unsafe"
@@ -15,18 +16,39 @@ type Connection struct {
 	virConnect C.virConnectPtr
 }
 
+type ConnectionMode uint
+
+const (
+	ReadWrite ConnectionMode = iota
+	ReadOnly
+)
+
 // DefaultURI is the URI chosen by libvirt to establish a default
 // connection, based on the current environment.
 // Check http://libvirt.org/uri.html for more details.
 const DefaultURI = ""
 
-// Open creates a new libvirt connection to the Hypervisor. The URIs are
-// documented at http://libvirt.org/uri.html.
-func Open(uri string) (Connection, *Error) {
+// ErrInvalidConnectionMode is returned by "Open" when a value other than
+// "ReadOnly" or "ReadWrite" is used.
+var ErrInvalidConnectionMode = errors.New("invalid libvirt connection mode")
+
+// Open creates a new libvirt connection to the Hypervisor. The
+// connection mode specifies whether the connection will be read-write
+// or read-only. The URIs are documented at http://libvirt.org/uri.html.
+func Open(uri string, mode ConnectionMode) (Connection, error) {
 	cUri := C.CString(uri)
 	defer C.free(unsafe.Pointer(cUri))
 
-	cConn := C.virConnectOpen(cUri)
+	var cConn C.virConnectPtr
+	switch mode {
+	case ReadWrite:
+		cConn = C.virConnectOpen(cUri)
+	case ReadOnly:
+		cConn = C.virConnectOpenReadOnly(cUri)
+	default:
+		return Connection{}, ErrInvalidConnectionMode
+	}
+
 	if cConn == nil {
 		return Connection{}, LastError()
 	}
@@ -34,18 +56,10 @@ func Open(uri string) (Connection, *Error) {
 	return Connection{cConn}, nil
 }
 
-// OpenReadOnly creates a restricted libvirt connection. The URIs are
-// documented at http://libvirt.org/uri.html.
-func OpenReadOnly(uri string) (Connection, *Error) {
-	cUri := C.CString(uri)
-	defer C.free(unsafe.Pointer(cUri))
-
-	cConn := C.virConnectOpenReadOnly(cUri)
-	if cConn == nil {
-		return Connection{}, LastError()
-	}
-
-	return Connection{cConn}, nil
+// OpenDefault creates a new read-write libvirt connection to the
+// hypervisor using the default URI.
+func OpenDefault() (Connection, error) {
+	return Open(DefaultURI, ReadWrite)
 }
 
 // Close closes the connection to the Hypervisor. Connections are reference
