@@ -11,8 +11,10 @@ import (
 	"unsafe"
 )
 
+// DomainFlag defines a filter when listing domains.
 type DomainFlag uint32
 
+// Possible values for DomainFlag.
 const (
 	DomActive DomainFlag = (1 << iota)
 	DomInactive
@@ -31,24 +33,31 @@ const (
 	DomAll = 0
 )
 
+// DomainMetadataType defines a type of metadata element.
 type DomainMetadataType uint32
 
+// Possible values for DomainMetadataType.
 const (
 	DomMetaDescription DomainMetadataType = iota
 	DomMetaTitle
 	DomMetaElement
 )
 
+// DomainModificationImpact controls whether the live domain or persistent
+// configuration (or both) will be queried.
 type DomainModificationImpact uint32
 
+// Possible values for DomainModificationImpact
 const (
 	DomAffectCurrent = iota
 	DomAffectLive
 	DomAffectConfig
 )
 
+// DomainXMLFlag defines how the XML content should be read from a domain.
 type DomainXMLFlag uint32
 
+// Possible values for DomainXMLFlag.
 const (
 	DomXMLSecure DomainXMLFlag = (1 << iota)
 	DomXMLInactive
@@ -57,8 +66,10 @@ const (
 	DomXMLDefault = 0
 )
 
+// DomainCreateFlag defines how a domain should be created.
 type DomainCreateFlag uint32
 
+// Possible values for DomainCreateFlag.
 const (
 	DomCreateStartPaused DomainCreateFlag = (1 << iota)
 	DomCreateStartAutodestroy
@@ -67,23 +78,29 @@ const (
 	DomCreateDefault = 0
 )
 
+// DomainDestroyFlag defines how a domain should be destroyed.
 type DomainDestroyFlag uint32
 
+// Possible values for DomainDestroyFlag.
 const (
 	DomDestroyGraceful DomainDestroyFlag = (1 << iota)
 	DomDestroyDefault                    = 0
 )
 
+// DomainUndefineFlag defines how a domain should be undefined.
 type DomainUndefineFlag uint32
 
+// Possible values for DomainUndefineFlag.
 const (
 	DomUndefineManagedSave DomainUndefineFlag = (1 << iota)
 	DomUndefineSnapshotsMetadata
 	DomUndefineDefault = 0
 )
 
+// DomainRebootFlag defines how a domain should be rebooted.
 type DomainRebootFlag uint32
 
+// Possible values for DomainRebootFlag.
 const (
 	DomRebootACPIPowerBtn DomainRebootFlag = (1 << iota)
 	DomRebootGuestAgent
@@ -92,8 +109,10 @@ const (
 	DomRebootDefault = 0
 )
 
+// DomainState represents the state of a domain.
 type DomainState uint32
 
+// Possible values for DomainState.
 const (
 	DomStateNone DomainState = iota
 	DomStateRunning
@@ -105,14 +124,18 @@ const (
 	DomStatePMSuspended
 )
 
+// DomainNostateReason describes the reason which led a domain to be on "DomStateNone".
 type DomainNostateReason uint32
 
+// Possible values for DomainNostateReason.
 const (
 	DomNostateReasonUnknown DomainNostateReason = iota
 )
 
+// DomainRunningReason describes the reason which led a domain to be on "DomStateRunning".
 type DomainRunningReason uint32
 
+// Possible values for DomainRunningReason.
 const (
 	DomRunningReasonUnknown DomainRunningReason = iota
 	DomRunningReasonBooted
@@ -126,14 +149,18 @@ const (
 	DomRunningReasonCrashed
 )
 
+// DomainBlockedReason describes the reason which led a domain to be on "DomStateBlocked".
 type DomainBlockedReason uint32
 
+// Possible values for DomainBlockedReason.
 const (
 	DomBlockedReasonUnkwown DomainBlockedReason = iota
 )
 
+// DomainPausedReason describes the reason which led a domain to be on "DomStatePaused".
 type DomainPausedReason uint32
 
+// Possible values for DomainPausedReason.
 const (
 	DomPausedReasonUnknown DomainPausedReason = iota
 	DomPausedReasonUser
@@ -148,15 +175,19 @@ const (
 	DomPausedReasonCrashed
 )
 
+// DomainShutdownReason describes the reason which led a domain to be on "DomStateShutdown".
 type DomainShutdownReason uint32
 
+// Possible values for DomainShutdownReason.
 const (
 	DomShutdownReasonUnknown DomainShutdownReason = iota
 	DomShutdownReasonUser
 )
 
+// DomainShutoffReason describes the reason which led a domain to be on "DomStateShutoff".
 type DomainShutoffReason uint32
 
+// Possible values for DomainShutoffReason.
 const (
 	DomShutoffReasonUnknown DomainShutoffReason = iota
 	DomShutoffReasonShutdown
@@ -168,21 +199,27 @@ const (
 	DomShutoffReasonFromSnapshot
 )
 
+// DomainCrashedReason describes the reason which led a domain to be on "DomStateCrashed".
 type DomainCrashedReason uint32
 
+// Possible values for DomainCrashedReason.
 const (
 	DomCrashedReasonUnknown DomainCrashedReason = iota
 	DomCrashedReasonPanicked
 )
 
+// DomainPMSuspendedReason describes the reason which led a domain to be on "DomStatePMSuspended".
 type DomainPMSuspendedReason uint32
 
+// Possible values for DomainPMSuspendedReason.
 const (
 	DomPMSuspendedReasonUnknown DomainPMSuspendedReason = iota
 )
 
+// DomainDumpFlag defines how a domain coredump should be taken.
 type DomainDumpFlag uint32
 
+// Possible values for DomainDumpFlag.
 const (
 	DomDumpCrash DomainDumpFlag = (1 << iota)
 	DomDumpLive
@@ -192,8 +229,10 @@ const (
 	DomDumpDefault = 0
 )
 
+// DomainVCPUsFlag defines how a domain VCPUs count should be handled.
 type DomainVCPUsFlag uint32
 
+// Possible values for DomainVCPUsFlag.
 const (
 	DomVCPusConfig  DomainVCPUsFlag = DomAffectConfig
 	DomVCPUsCurrent                 = DomAffectCurrent
@@ -202,8 +241,10 @@ const (
 	DomVCPUsGuest                   = 8
 )
 
+// DomainSaveFlag defines how a domain should be saved/restored.
 type DomainSaveFlag uint32
 
+// Possible values for DomainSaveFlag.
 const (
 	DomSaveBypassCache DomainSaveFlag = (1 << iota)
 	DomSaveRunning
@@ -211,8 +252,10 @@ const (
 	DomSaveDefault = 0
 )
 
+// DomainDeviceModifyFlag defines how a domain device should be attached/detached/modified.
 type DomainDeviceModifyFlag uint32
 
+// Possible values for DomainDeviceModifyFlag.
 const (
 	DomDeviceModifyConfig  DomainDeviceModifyFlag = DomAffectConfig
 	DomDeviceModifyCurrent                        = DomAffectCurrent
@@ -220,8 +263,10 @@ const (
 	DomDeviceModifyForce                          = 4
 )
 
+// DomainMemoryFlag controls how the domain memory should be modified.
 type DomainMemoryFlag uint32
 
+// Possible values for DomainMemoryFlag.
 const (
 	DomMemoryConfig  DomainMemoryFlag = DomAffectConfig
 	DomMemoryCurrent                  = DomAffectCurrent
@@ -229,8 +274,10 @@ const (
 	DomMemoryMaximum                  = 4
 )
 
+// DomainKeycodeSet defines a code set of keycodes.
 type DomainKeycodeSet uint32
 
+// Possible values for DomainKeycodeSet.
 const (
 	DomKeycodeSetLinux DomainKeycodeSet = iota
 	DomKeycodeSetXT
@@ -244,8 +291,10 @@ const (
 	DomKeycodeSetRFB
 )
 
+// DomainProcessSignal defines the valid signals which can be sent to a domain.
 type DomainProcessSignal uint32
 
+// Possible values for DomainProcessSignal.
 const (
 	DomSIGNOP = iota
 	DomSIGHUP
@@ -314,6 +363,7 @@ const (
 	DomSIGRT32
 )
 
+// Domain holds a libvirt domain. There are no exported fields.
 type Domain struct {
 	log       *log.Logger
 	virDomain C.virDomainPtr

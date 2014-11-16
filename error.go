@@ -7,8 +7,10 @@ import (
 	"log"
 )
 
+// ErrorCode is the error code.
 type ErrorCode uint32
 
+// Possible values for ErrorCode.
 const (
 	ErrOK ErrorCode = iota
 	ErrInternal
@@ -103,8 +105,10 @@ const (
 	ErrStorageVolExist
 )
 
+// ErrorDomain describes what part of the library raised the error.
 type ErrorDomain uint32
 
+// Possible values for ErrorDomain.
 const (
 	ErrDomNone ErrorDomain = iota
 	ErrDomXen
@@ -166,14 +170,17 @@ const (
 	ErrDomBhyve
 )
 
+// ErrorLevel specifies how consequent is the error.
 type ErrorLevel uint32
 
+// Possible values for ErrorLevel.
 const (
 	ErrLvlNone ErrorLevel = (0 << iota)
 	ErrLvlWarning
 	ErrLvlError
 )
 
+// Error is a wrapper for a native libvirt error.
 type Error struct {
 	Code             ErrorCode
 	Domain           ErrorDomain

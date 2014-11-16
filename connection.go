@@ -27,8 +27,10 @@ type Connection struct {
 	virConnect C.virConnectPtr
 }
 
+// ConnectionMode is the type of connection to the libvirt hypervisor.
 type ConnectionMode uint
 
+// Possible values for ConnectionMode.
 const (
 	ReadWrite ConnectionMode = iota
 	ReadOnly
