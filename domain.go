@@ -16,21 +16,21 @@ type DomainFlag uint32
 
 // Possible values for DomainFlag.
 const (
-	DomActive DomainFlag = (1 << iota)
-	DomInactive
-	DomPersistent
-	DomTransient
-	DomRunning
-	DomPaused
-	DomShutOff
-	DomOther
-	DomManagedSave
-	DomNoManagedSave
-	DomAutostart
-	DomNoAutostart
-	DomHasSnapshot
-	DomNoSnapshot
-	DomAll = 0
+	DomAll           DomainFlag = 0
+	DomActive        DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_ACTIVE
+	DomInactive      DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_INACTIVE
+	DomPersistent    DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_PERSISTENT
+	DomTransient     DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_TRANSIENT
+	DomRunning       DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_RUNNING
+	DomPaused        DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_PAUSED
+	DomShutOff       DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_SHUTOFF
+	DomOther         DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_OTHER
+	DomManagedSave   DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE
+	DomNoManagedSave DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE
+	DomAutostart     DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_AUTOSTART
+	DomNoAutostart   DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART
+	DomHasSnapshot   DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT
+	DomNoSnapshot    DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT
 )
 
 // DomainMetadataType defines a type of metadata element.
@@ -38,9 +38,9 @@ type DomainMetadataType uint32
 
 // Possible values for DomainMetadataType.
 const (
-	DomMetaDescription DomainMetadataType = iota
-	DomMetaTitle
-	DomMetaElement
+	DomMetaDescription DomainMetadataType = C.VIR_DOMAIN_METADATA_DESCRIPTION
+	DomMetaTitle       DomainMetadataType = C.VIR_DOMAIN_METADATA_TITLE
+	DomMetaElement     DomainMetadataType = C.VIR_DOMAIN_METADATA_ELEMENT
 )
 
 // DomainModificationImpact controls whether the live domain or persistent
@@ -49,9 +49,9 @@ type DomainModificationImpact uint32
 
 // Possible values for DomainModificationImpact
 const (
-	DomAffectCurrent = iota
-	DomAffectLive
-	DomAffectConfig
+	DomAffectCurrent DomainModificationImpact = C.VIR_DOMAIN_AFFECT_CURRENT
+	DomAffectLive    DomainModificationImpact = C.VIR_DOMAIN_AFFECT_LIVE
+	DomAffectConfig  DomainModificationImpact = C.VIR_DOMAIN_AFFECT_CONFIG
 )
 
 // DomainXMLFlag defines how the XML content should be read from a domain.
@@ -59,11 +59,11 @@ type DomainXMLFlag uint32
 
 // Possible values for DomainXMLFlag.
 const (
-	DomXMLSecure DomainXMLFlag = (1 << iota)
-	DomXMLInactive
-	DomXMLUpdateCPU
-	DomXMLMigratable
-	DomXMLDefault = 0
+	DomXMLDefault    DomainXMLFlag = 0
+	DomXMLSecure     DomainXMLFlag = C.VIR_DOMAIN_XML_SECURE
+	DomXMLInactive   DomainXMLFlag = C.VIR_DOMAIN_XML_INACTIVE
+	DomXMLUpdateCPU  DomainXMLFlag = C.VIR_DOMAIN_XML_UPDATE_CPU
+	DomXMLMigratable DomainXMLFlag = C.VIR_DOMAIN_XML_MIGRATABLE
 )
 
 // DomainCreateFlag defines how a domain should be created.
@@ -71,11 +71,11 @@ type DomainCreateFlag uint32
 
 // Possible values for DomainCreateFlag.
 const (
-	DomCreateStartPaused DomainCreateFlag = (1 << iota)
-	DomCreateStartAutodestroy
-	DomCreateStartBypassCache
-	DomCreateStartForceBoot
-	DomCreateDefault = 0
+	DomCreateDefault          DomainCreateFlag = C.VIR_DOMAIN_NONE
+	DomCreateStartPaused      DomainCreateFlag = C.VIR_DOMAIN_START_PAUSED
+	DomCreateStartAutodestroy DomainCreateFlag = C.VIR_DOMAIN_START_AUTODESTROY
+	DomCreateStartBypassCache DomainCreateFlag = C.VIR_DOMAIN_START_BYPASS_CACHE
+	DomCreateStartForceBoot   DomainCreateFlag = C.VIR_DOMAIN_START_FORCE_BOOT
 )
 
 // DomainDestroyFlag defines how a domain should be destroyed.
@@ -83,8 +83,8 @@ type DomainDestroyFlag uint32
 
 // Possible values for DomainDestroyFlag.
 const (
-	DomDestroyGraceful DomainDestroyFlag = (1 << iota)
-	DomDestroyDefault                    = 0
+	DomDestroyDefault  DomainDestroyFlag = C.VIR_DOMAIN_DESTROY_DEFAULT
+	DomDestroyGraceful DomainDestroyFlag = C.VIR_DOMAIN_DESTROY_GRACEFUL
 )
 
 // DomainUndefineFlag defines how a domain should be undefined.
@@ -92,9 +92,9 @@ type DomainUndefineFlag uint32
 
 // Possible values for DomainUndefineFlag.
 const (
-	DomUndefineManagedSave DomainUndefineFlag = (1 << iota)
-	DomUndefineSnapshotsMetadata
-	DomUndefineDefault = 0
+	DomUndefineDefault           DomainUndefineFlag = 0
+	DomUndefineManagedSave       DomainUndefineFlag = C.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+	DomUndefineSnapshotsMetadata DomainUndefineFlag = C.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
 )
 
 // DomainRebootFlag defines how a domain should be rebooted.
@@ -102,11 +102,11 @@ type DomainRebootFlag uint32
 
 // Possible values for DomainRebootFlag.
 const (
-	DomRebootACPIPowerBtn DomainRebootFlag = (1 << iota)
-	DomRebootGuestAgent
-	DomRebootInitctl
-	DomRebootSignal
-	DomRebootDefault = 0
+	DomRebootDefault      DomainRebootFlag = C.VIR_DOMAIN_REBOOT_DEFAULT
+	DomRebootACPIPowerBtn DomainRebootFlag = C.VIR_DOMAIN_REBOOT_ACPI_POWER_BTN
+	DomRebootGuestAgent   DomainRebootFlag = C.VIR_DOMAIN_REBOOT_GUEST_AGENT
+	DomRebootInitctl      DomainRebootFlag = C.VIR_DOMAIN_REBOOT_INITCTL
+	DomRebootSignal       DomainRebootFlag = C.VIR_DOMAIN_REBOOT_SIGNAL
 )
 
 // DomainState represents the state of a domain.
@@ -114,14 +114,14 @@ type DomainState uint32
 
 // Possible values for DomainState.
 const (
-	DomStateNone DomainState = iota
-	DomStateRunning
-	DomStateBlocked
-	DomStatePaused
-	DomStateShutdown
-	DomStateShutoff
-	DomStateCrashed
-	DomStatePMSuspended
+	DomStateNone        DomainState = C.VIR_DOMAIN_NOSTATE
+	DomStateRunning     DomainState = C.VIR_DOMAIN_RUNNING
+	DomStateBlocked     DomainState = C.VIR_DOMAIN_BLOCKED
+	DomStatePaused      DomainState = C.VIR_DOMAIN_PAUSED
+	DomStateShutdown    DomainState = C.VIR_DOMAIN_SHUTDOWN
+	DomStateShutoff     DomainState = C.VIR_DOMAIN_SHUTOFF
+	DomStateCrashed     DomainState = C.VIR_DOMAIN_CRASHED
+	DomStatePMSuspended DomainState = C.VIR_DOMAIN_PMSUSPENDED
 )
 
 // DomainNostateReason describes the reason which led a domain to be on "DomStateNone".
@@ -129,7 +129,7 @@ type DomainNostateReason uint32
 
 // Possible values for DomainNostateReason.
 const (
-	DomNostateReasonUnknown DomainNostateReason = iota
+	DomNostateReasonUnknown DomainNostateReason = C.VIR_DOMAIN_NOSTATE_UNKNOWN
 )
 
 // DomainRunningReason describes the reason which led a domain to be on "DomStateRunning".
@@ -137,16 +137,16 @@ type DomainRunningReason uint32
 
 // Possible values for DomainRunningReason.
 const (
-	DomRunningReasonUnknown DomainRunningReason = iota
-	DomRunningReasonBooted
-	DomRunningReasonMigrated
-	DomRunningReasonRestored
-	DomRunningReasonFromSnapshot
-	DomRunningReasonUnpaused
-	DomRunningReasonMigrationCancelled
-	DomRunningReasonSaveCancelled
-	DomRunningReasonWakeUp
-	DomRunningReasonCrashed
+	DomRunningReasonUnknown            DomainRunningReason = C.VIR_DOMAIN_RUNNING_UNKNOWN
+	DomRunningReasonBooted             DomainRunningReason = C.VIR_DOMAIN_RUNNING_BOOTED
+	DomRunningReasonMigrated           DomainRunningReason = C.VIR_DOMAIN_RUNNING_MIGRATED
+	DomRunningReasonRestored           DomainRunningReason = C.VIR_DOMAIN_RUNNING_RESTORED
+	DomRunningReasonFromSnapshot       DomainRunningReason = C.VIR_DOMAIN_RUNNING_FROM_SNAPSHOT
+	DomRunningReasonUnpaused           DomainRunningReason = C.VIR_DOMAIN_RUNNING_UNPAUSED
+	DomRunningReasonMigrationCancelled DomainRunningReason = C.VIR_DOMAIN_RUNNING_MIGRATION_CANCELED
+	DomRunningReasonSaveCancelled      DomainRunningReason = C.VIR_DOMAIN_RUNNING_SAVE_CANCELED
+	DomRunningReasonWakeUp             DomainRunningReason = C.VIR_DOMAIN_RUNNING_WAKEUP
+	DomRunningReasonCrashed            DomainRunningReason = C.VIR_DOMAIN_RUNNING_CRASHED
 )
 
 // DomainBlockedReason describes the reason which led a domain to be on "DomStateBlocked".
@@ -154,7 +154,7 @@ type DomainBlockedReason uint32
 
 // Possible values for DomainBlockedReason.
 const (
-	DomBlockedReasonUnkwown DomainBlockedReason = iota
+	DomBlockedReasonUnkwown DomainBlockedReason = C.VIR_DOMAIN_BLOCKED_UNKNOWN
 )
 
 // DomainPausedReason describes the reason which led a domain to be on "DomStatePaused".
@@ -162,17 +162,17 @@ type DomainPausedReason uint32
 
 // Possible values for DomainPausedReason.
 const (
-	DomPausedReasonUnknown DomainPausedReason = iota
-	DomPausedReasonUser
-	DomPausedReasonMigration
-	DomPausedReasonSave
-	DomPausedReasonDump
-	DomPausedReasonIOError
-	DomPausedReasonWatchdog
-	DomPausedReasonFromSnapshot
-	DomPausedReasonShuttingDown
-	DomPausedReasonSnapshot
-	DomPausedReasonCrashed
+	DomPausedReasonUnknown      DomainPausedReason = C.VIR_DOMAIN_PAUSED_UNKNOWN
+	DomPausedReasonUser         DomainPausedReason = C.VIR_DOMAIN_PAUSED_USER
+	DomPausedReasonMigration    DomainPausedReason = C.VIR_DOMAIN_PAUSED_MIGRATION
+	DomPausedReasonSave         DomainPausedReason = C.VIR_DOMAIN_PAUSED_SAVE
+	DomPausedReasonDump         DomainPausedReason = C.VIR_DOMAIN_PAUSED_DUMP
+	DomPausedReasonIOError      DomainPausedReason = C.VIR_DOMAIN_PAUSED_IOERROR
+	DomPausedReasonWatchdog     DomainPausedReason = C.VIR_DOMAIN_PAUSED_WATCHDOG
+	DomPausedReasonFromSnapshot DomainPausedReason = C.VIR_DOMAIN_PAUSED_FROM_SNAPSHOT
+	DomPausedReasonShuttingDown DomainPausedReason = C.VIR_DOMAIN_PAUSED_SHUTTING_DOWN
+	DomPausedReasonSnapshot     DomainPausedReason = C.VIR_DOMAIN_PAUSED_SNAPSHOT
+	DomPausedReasonCrashed      DomainPausedReason = C.VIR_DOMAIN_PAUSED_CRASHED
 )
 
 // DomainShutdownReason describes the reason which led a domain to be on "DomStateShutdown".
@@ -180,8 +180,8 @@ type DomainShutdownReason uint32
 
 // Possible values for DomainShutdownReason.
 const (
-	DomShutdownReasonUnknown DomainShutdownReason = iota
-	DomShutdownReasonUser
+	DomShutdownReasonUnknown DomainShutdownReason = C.VIR_DOMAIN_SHUTDOWN_UNKNOWN
+	DomShutdownReasonUser    DomainShutdownReason = C.VIR_DOMAIN_SHUTDOWN_USER
 )
 
 // DomainShutoffReason describes the reason which led a domain to be on "DomStateShutoff".
@@ -189,14 +189,14 @@ type DomainShutoffReason uint32
 
 // Possible values for DomainShutoffReason.
 const (
-	DomShutoffReasonUnknown DomainShutoffReason = iota
-	DomShutoffReasonShutdown
-	DomShutoffReasonDestroyed
-	DomShutoffReasonCrashed
-	DomShutoffReasonMigrated
-	DomShutoffReasonSaved
-	DomShutoffReasonFailed
-	DomShutoffReasonFromSnapshot
+	DomShutoffReasonUnknown      DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_UNKNOWN
+	DomShutoffReasonShutdown     DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_SHUTDOWN
+	DomShutoffReasonDestroyed    DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_DESTROYED
+	DomShutoffReasonCrashed      DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_CRASHED
+	DomShutoffReasonMigrated     DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_MIGRATED
+	DomShutoffReasonSaved        DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_SAVED
+	DomShutoffReasonFailed       DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_FAILED
+	DomShutoffReasonFromSnapshot DomainShutoffReason = C.VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT
 )
 
 // DomainCrashedReason describes the reason which led a domain to be on "DomStateCrashed".
@@ -204,8 +204,8 @@ type DomainCrashedReason uint32
 
 // Possible values for DomainCrashedReason.
 const (
-	DomCrashedReasonUnknown DomainCrashedReason = iota
-	DomCrashedReasonPanicked
+	DomCrashedReasonUnknown  DomainCrashedReason = C.VIR_DOMAIN_CRASHED_UNKNOWN
+	DomCrashedReasonPanicked DomainCrashedReason = C.VIR_DOMAIN_CRASHED_PANICKED
 )
 
 // DomainPMSuspendedReason describes the reason which led a domain to be on "DomStatePMSuspended".
@@ -213,7 +213,7 @@ type DomainPMSuspendedReason uint32
 
 // Possible values for DomainPMSuspendedReason.
 const (
-	DomPMSuspendedReasonUnknown DomainPMSuspendedReason = iota
+	DomPMSuspendedReasonUnknown DomainPMSuspendedReason = C.VIR_DOMAIN_PMSUSPENDED_UNKNOWN
 )
 
 // DomainDumpFlag defines how a domain coredump should be taken.
@@ -221,12 +221,12 @@ type DomainDumpFlag uint32
 
 // Possible values for DomainDumpFlag.
 const (
-	DomDumpCrash DomainDumpFlag = (1 << iota)
-	DomDumpLive
-	DomDumpBypassCache
-	DomDumpReset
-	DomDumpMemoryOnly
-	DomDumpDefault = 0
+	DomDumpDefault     DomainDumpFlag = 0
+	DomDumpCrash       DomainDumpFlag = C.VIR_DUMP_CRASH
+	DomDumpLive        DomainDumpFlag = C.VIR_DUMP_LIVE
+	DomDumpBypassCache DomainDumpFlag = C.VIR_DUMP_BYPASS_CACHE
+	DomDumpReset       DomainDumpFlag = C.VIR_DUMP_RESET
+	DomDumpMemoryOnly  DomainDumpFlag = C.VIR_DUMP_MEMORY_ONLY
 )
 
 // DomainVCPUsFlag defines how a domain VCPUs count should be handled.
@@ -234,11 +234,11 @@ type DomainVCPUsFlag uint32
 
 // Possible values for DomainVCPUsFlag.
 const (
-	DomVCPusConfig  DomainVCPUsFlag = DomAffectConfig
-	DomVCPUsCurrent                 = DomAffectCurrent
-	DomVCPUsLive                    = DomAffectLive
-	DomVCPUsMaximum                 = 4
-	DomVCPUsGuest                   = 8
+	DomVCPusConfig  DomainVCPUsFlag = C.VIR_DOMAIN_VCPU_CONFIG
+	DomVCPUsCurrent DomainVCPUsFlag = C.VIR_DOMAIN_VCPU_CURRENT
+	DomVCPUsLive    DomainVCPUsFlag = C.VIR_DOMAIN_VCPU_LIVE
+	DomVCPUsMaximum DomainVCPUsFlag = C.VIR_DOMAIN_VCPU_MAXIMUM
+	DomVCPUsGuest   DomainVCPUsFlag = C.VIR_DOMAIN_VCPU_GUEST
 )
 
 // DomainSaveFlag defines how a domain should be saved/restored.
@@ -246,10 +246,10 @@ type DomainSaveFlag uint32
 
 // Possible values for DomainSaveFlag.
 const (
-	DomSaveBypassCache DomainSaveFlag = (1 << iota)
-	DomSaveRunning
-	DomSavePaused
-	DomSaveDefault = 0
+	DomSaveDefault     DomainSaveFlag = 0
+	DomSaveBypassCache DomainSaveFlag = C.VIR_DOMAIN_SAVE_BYPASS_CACHE
+	DomSaveRunning     DomainSaveFlag = C.VIR_DOMAIN_SAVE_RUNNING
+	DomSavePaused      DomainSaveFlag = C.VIR_DOMAIN_SAVE_PAUSED
 )
 
 // DomainDeviceModifyFlag defines how a domain device should be attached/detached/modified.
@@ -257,10 +257,10 @@ type DomainDeviceModifyFlag uint32
 
 // Possible values for DomainDeviceModifyFlag.
 const (
-	DomDeviceModifyConfig  DomainDeviceModifyFlag = DomAffectConfig
-	DomDeviceModifyCurrent                        = DomAffectCurrent
-	DomDeviceModifyLive                           = DomAffectLive
-	DomDeviceModifyForce                          = 4
+	DomDeviceModifyConfig  DomainDeviceModifyFlag = C.VIR_DOMAIN_DEVICE_MODIFY_CONFIG
+	DomDeviceModifyCurrent DomainDeviceModifyFlag = C.VIR_DOMAIN_DEVICE_MODIFY_CURRENT
+	DomDeviceModifyLive    DomainDeviceModifyFlag = C.VIR_DOMAIN_DEVICE_MODIFY_LIVE
+	DomDeviceModifyForce   DomainDeviceModifyFlag = C.VIR_DOMAIN_DEVICE_MODIFY_FORCE
 )
 
 // DomainMemoryFlag controls how the domain memory should be modified.
@@ -268,10 +268,10 @@ type DomainMemoryFlag uint32
 
 // Possible values for DomainMemoryFlag.
 const (
-	DomMemoryConfig  DomainMemoryFlag = DomAffectConfig
-	DomMemoryCurrent                  = DomAffectCurrent
-	DomMemoryLive                     = DomAffectLive
-	DomMemoryMaximum                  = 4
+	DomMemoryConfig  DomainMemoryFlag = C.VIR_DOMAIN_MEM_CONFIG
+	DomMemoryCurrent DomainMemoryFlag = C.VIR_DOMAIN_MEM_CURRENT
+	DomMemoryLive    DomainMemoryFlag = C.VIR_DOMAIN_MEM_LIVE
+	DomMemoryMaximum DomainMemoryFlag = C.VIR_DOMAIN_MEM_MAXIMUM
 )
 
 // DomainKeycodeSet defines a code set of keycodes.
@@ -279,16 +279,16 @@ type DomainKeycodeSet uint32
 
 // Possible values for DomainKeycodeSet.
 const (
-	DomKeycodeSetLinux DomainKeycodeSet = iota
-	DomKeycodeSetXT
-	DomKeycodeSetATSet1
-	DomKeycodeSetATSet2
-	DomKeycodeSetATSet3
-	DomKeycodeSetOSX
-	DomKeycodeSetXTKbd
-	DomKeycodeSetUSB
-	DomKeycodeSetWin32
-	DomKeycodeSetRFB
+	DomKeycodeSetLinux  DomainKeycodeSet = C.VIR_KEYCODE_SET_LINUX
+	DomKeycodeSetXT     DomainKeycodeSet = C.VIR_KEYCODE_SET_XT
+	DomKeycodeSetATSet1 DomainKeycodeSet = C.VIR_KEYCODE_SET_ATSET1
+	DomKeycodeSetATSet2 DomainKeycodeSet = C.VIR_KEYCODE_SET_ATSET2
+	DomKeycodeSetATSet3 DomainKeycodeSet = C.VIR_KEYCODE_SET_ATSET3
+	DomKeycodeSetOSX    DomainKeycodeSet = C.VIR_KEYCODE_SET_OSX
+	DomKeycodeSetXTKbd  DomainKeycodeSet = C.VIR_KEYCODE_SET_XT_KBD
+	DomKeycodeSetUSB    DomainKeycodeSet = C.VIR_KEYCODE_SET_USB
+	DomKeycodeSetWin32  DomainKeycodeSet = C.VIR_KEYCODE_SET_WIN32
+	DomKeycodeSetRFB    DomainKeycodeSet = C.VIR_KEYCODE_SET_RFB
 )
 
 // DomainProcessSignal defines the valid signals which can be sent to a domain.
@@ -296,71 +296,71 @@ type DomainProcessSignal uint32
 
 // Possible values for DomainProcessSignal.
 const (
-	DomSIGNOP = iota
-	DomSIGHUP
-	DomSIGINT
-	DomSIGQUIT
-	DomSIGILL
-	DomSIGTRAP
-	DomSIGABRT
-	DomSIGBUS
-	DomSIGFPE
-	DomSIGKILL
-	DomSIGUSR1
-	DomSIGSEGV
-	DomSIGUSR2
-	DomSIGPIPE
-	DomSIGALRM
-	DomSIGTERM
-	DomSIGSTKFLT
-	DomSIGCHLD
-	DomSIGCONT
-	DomSIGSTOP
-	DomSIGTSTP
-	DomSIGTTIN
-	DomSIGTTOU
-	DomSIGURG
-	DomSIGXCPU
-	DomSIGXFSZ
-	DomSIGVTALRM
-	DomSIGPROF
-	DomSIGWINCH
-	DomSIGPOLL
-	DomSIGPWR
-	DomSIGSYS
-	DomSIGRT0
-	DomSIGRT1
-	DomSIGRT2
-	DomSIGRT3
-	DomSIGRT4
-	DomSIGRT5
-	DomSIGRT6
-	DomSIGRT7
-	DomSIGRT8
-	DomSIGRT9
-	DomSIGRT10
-	DomSIGRT11
-	DomSIGRT12
-	DomSIGRT13
-	DomSIGRT14
-	DomSIGRT15
-	DomSIGRT16
-	DomSIGRT17
-	DomSIGRT18
-	DomSIGRT19
-	DomSIGRT20
-	DomSIGRT21
-	DomSIGRT22
-	DomSIGRT23
-	DomSIGRT24
-	DomSIGRT25
-	DomSIGRT26
-	DomSIGRT27
-	DomSIGRT28
-	DomSIGRT29
-	DomSIGRT30
-	DomSIGRT31
-	DomSIGRT32
+	DomSIGNOP    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_NOP
+	DomSIGHUP    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_HUP
+	DomSIGINT    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_INT
+	DomSIGQUIT   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_QUIT
+	DomSIGILL    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_ILL
+	DomSIGTRAP   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_TRAP
+	DomSIGABRT   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_ABRT
+	DomSIGBUS    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_BUS
+	DomSIGFPE    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_FPE
+	DomSIGKILL   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_KILL
+	DomSIGUSR1   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_USR1
+	DomSIGSEGV   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_SEGV
+	DomSIGUSR2   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_USR2
+	DomSIGPIPE   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_PIPE
+	DomSIGALRM   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_ALRM
+	DomSIGTERM   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_TERM
+	DomSIGSTKFLT DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_STKFLT
+	DomSIGCHLD   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_CHLD
+	DomSIGCONT   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_CONT
+	DomSIGSTOP   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_STOP
+	DomSIGTSTP   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_TSTP
+	DomSIGTTIN   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_TTIN
+	DomSIGTTOU   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_TTOU
+	DomSIGURG    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_URG
+	DomSIGXCPU   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_XCPU
+	DomSIGXFSZ   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_XFSZ
+	DomSIGVTALRM DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_VTALRM
+	DomSIGPROF   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_PROF
+	DomSIGWINCH  DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_WINCH
+	DomSIGPOLL   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_POLL
+	DomSIGPWR    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_PWR
+	DomSIGSYS    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_SYS
+	DomSIGRT0    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT0
+	DomSIGRT1    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT1
+	DomSIGRT2    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT2
+	DomSIGRT3    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT3
+	DomSIGRT4    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT4
+	DomSIGRT5    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT5
+	DomSIGRT6    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT6
+	DomSIGRT7    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT7
+	DomSIGRT8    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT8
+	DomSIGRT9    DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT9
+	DomSIGRT10   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT10
+	DomSIGRT11   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT11
+	DomSIGRT12   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT12
+	DomSIGRT13   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT13
+	DomSIGRT14   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT14
+	DomSIGRT15   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT15
+	DomSIGRT16   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT16
+	DomSIGRT17   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT17
+	DomSIGRT18   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT18
+	DomSIGRT19   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT19
+	DomSIGRT20   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT20
+	DomSIGRT21   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT21
+	DomSIGRT22   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT22
+	DomSIGRT23   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT23
+	DomSIGRT24   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT24
+	DomSIGRT25   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT25
+	DomSIGRT26   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT26
+	DomSIGRT27   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT27
+	DomSIGRT28   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT28
+	DomSIGRT29   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT29
+	DomSIGRT30   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT30
+	DomSIGRT31   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT31
+	DomSIGRT32   DomainProcessSignal = C.VIR_DOMAIN_PROCESS_SIGNAL_RT32
 )
 
 // Domain holds a libvirt domain. There are no exported fields.
