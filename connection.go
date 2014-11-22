@@ -116,7 +116,7 @@ func OpenDefault() (Connection, error) {
 // positive value if some other object still has a temporary reference to the
 // connection, but the application should not try to further use a connection
 // after the Close that matches the initial open.
-func (conn Connection) Close() (int32, *Error) {
+func (conn Connection) Close() (int32, error) {
 	conn.log.Println("closing connection...")
 	cRet := C.virConnectClose(conn.virConnect)
 	ret := int32(cRet)
@@ -133,7 +133,7 @@ func (conn Connection) Close() (int32, *Error) {
 }
 
 // Version gets the version level of the Hypervisor running.
-func (conn Connection) Version() (uint64, *Error) {
+func (conn Connection) Version() (uint64, error) {
 	var cVersion C.ulong
 	conn.log.Println("reading hypervisor version...")
 	cRet := C.virConnectGetVersion(conn.virConnect, &cVersion)
@@ -153,7 +153,7 @@ func (conn Connection) Version() (uint64, *Error) {
 
 // LibVersion provides the version of libvirt used by the daemon running on
 // the host.
-func (conn Connection) LibVersion() (uint64, *Error) {
+func (conn Connection) LibVersion() (uint64, error) {
 	var cVersion C.ulong
 	conn.log.Println("reading libvirt version...")
 	cRet := C.virConnectGetLibVersion(conn.virConnect, &cVersion)
@@ -238,7 +238,7 @@ func (conn Connection) IsSecure() bool {
 }
 
 // Capabilities provides capabilities of the hypervisor/driver.
-func (conn Connection) Capabilities() (string, *Error) {
+func (conn Connection) Capabilities() (string, error) {
 	conn.log.Println("reading connection capabilities...")
 	cCap := C.virConnectGetCapabilities(conn.virConnect)
 	if cCap == nil {
@@ -258,7 +258,7 @@ func (conn Connection) Capabilities() (string, *Error) {
 // (based on the result of the gethostname system call, but possibly expanded
 // to a fully-qualified domain name via getaddrinfo). If we are connected to a
 // remote system, then this returns the hostname of the remote system.
-func (conn Connection) Hostname() (string, *Error) {
+func (conn Connection) Hostname() (string, error) {
 	conn.log.Println("reading system hostname...")
 	cHostname := C.virConnectGetHostname(conn.virConnect)
 	if cHostname == nil {
@@ -278,7 +278,7 @@ func (conn Connection) Hostname() (string, *Error) {
 // which the hypervisor is running, in the same format as the <sysinfo> element
 // of a domain XML. This information is generally available only for
 // hypervisors running with root privileges.
-func (conn Connection) Sysinfo() (string, *Error) {
+func (conn Connection) Sysinfo() (string, error) {
 	conn.log.Println("reading system info...")
 	cSysinfo := C.virConnectGetSysinfo(conn.virConnect, 0)
 	if cSysinfo == nil {
@@ -298,7 +298,7 @@ func (conn Connection) Sysinfo() (string, *Error) {
 // the qemu:// URI, so a return of "QEMU" does not indicate whether KVM
 // acceleration is present. For more details about the hypervisor, use
 // Capabilities.
-func (conn Connection) Type() (string, *Error) {
+func (conn Connection) Type() (string, error) {
 	conn.log.Println("reading hypervisor driver name...")
 	cType := C.virConnectGetType(conn.virConnect)
 	if cType == nil {
@@ -318,7 +318,7 @@ func (conn Connection) Type() (string, *Error) {
 // but the driver may make the URI canonical. If uri == "" was passed to Open,
 // then the driver will return a non-NULL URI which can be used to connect tos
 // the same hypervisor later.
-func (conn Connection) URI() (string, *Error) {
+func (conn Connection) URI() (string, error) {
 	conn.log.Println("reading connection URI...")
 	cURI := C.virConnectGetURI(conn.virConnect)
 	if cURI == nil {
@@ -337,7 +337,7 @@ func (conn Connection) URI() (string, *Error) {
 // call to this method, there shall be a corresponding call to Close to release
 // the reference count, once the caller no longer needs the reference to
 // this object.
-func (conn Connection) Ref() *Error {
+func (conn Connection) Ref() error {
 	conn.log.Println("incrementing connection's reference count...")
 	cRet := C.virConnectRef(conn.virConnect)
 	ret := int32(cRet)
@@ -354,7 +354,7 @@ func (conn Connection) Ref() *Error {
 
 // CPUModelNames gets the list of supported CPU models for a
 // specific architecture.
-func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
+func (conn Connection) CPUModelNames(arch string) ([]string, error) {
 	cArch := C.CString(arch)
 	defer C.free(unsafe.Pointer(cArch))
 
@@ -389,7 +389,7 @@ func (conn Connection) CPUModelNames(arch string) ([]string, *Error) {
 // MaxVCPUs provides the maximum number of virtual CPUs supported for a guest
 // VM of a specific type. The 'type' parameter here corresponds to the 'type'
 // attribute in the <domain> element of the XML
-func (conn Connection) MaxVCPUs(typ string) (int32, *Error) {
+func (conn Connection) MaxVCPUs(typ string) (int32, error) {
 	cTyp := C.CString(typ)
 	defer C.free(unsafe.Pointer(cTyp))
 
@@ -410,7 +410,7 @@ func (conn Connection) MaxVCPUs(typ string) (int32, *Error) {
 
 // ListDomains collects a possibly-filtered list of all domains, and return an
 // array of information for each.
-func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
+func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, error) {
 	var cDomains []C.virDomainPtr
 	domainsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cDomains))
 
@@ -446,7 +446,7 @@ func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, *Error) {
 // privileged access to the hypervisor. The domain is not persistent, so its
 // definition will disappear when it is destroyed, or if the host is restarted
 // (see Domain.Define() to define persistent domains).
-func (conn Connection) CreateDomain(xml string, flags DomainCreateFlag) (Domain, *Error) {
+func (conn Connection) CreateDomain(xml string, flags DomainCreateFlag) (Domain, error) {
 	cXML := C.CString(xml)
 	defer C.free(unsafe.Pointer(cXML))
 
@@ -471,7 +471,7 @@ func (conn Connection) CreateDomain(xml string, flags DomainCreateFlag) (Domain,
 // DefineDomain defines a domain, but does not start it. This definition is
 // persistent, until explicitly undefined with Domain.Undefine(). A previous
 // definition for this domain would be overridden if it already exists.
-func (conn Connection) DefineDomain(xml string) (Domain, *Error) {
+func (conn Connection) DefineDomain(xml string) (Domain, error) {
 	cXML := C.CString(xml)
 	defer C.free(unsafe.Pointer(cXML))
 
@@ -496,7 +496,7 @@ func (conn Connection) DefineDomain(xml string) (Domain, *Error) {
 // LookupDomainByID tries to find a domain based on the hypervisor ID number.
 // Note that this won't work for inactive domains which have an ID of -1, in
 // that case a lookup based on the Name or UUID need to be done instead.
-func (conn Connection) LookupDomainByID(id uint32) (Domain, *Error) {
+func (conn Connection) LookupDomainByID(id uint32) (Domain, error) {
 	conn.log.Printf("looking up domain with ID = %v...\n", id)
 	cDomain := C.virDomainLookupByID(conn.virConnect, C.int(id))
 	if cDomain == nil {
@@ -517,7 +517,7 @@ func (conn Connection) LookupDomainByID(id uint32) (Domain, *Error) {
 
 // LookupDomainByName tries to lookup a domain on the given hypervisor based on
 // its name.
-func (conn Connection) LookupDomainByName(name string) (Domain, *Error) {
+func (conn Connection) LookupDomainByName(name string) (Domain, error) {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
 
@@ -541,7 +541,7 @@ func (conn Connection) LookupDomainByName(name string) (Domain, *Error) {
 
 // LookupDomainByUUID tries to lookup a domain on the given hypervisor based on
 // its UUID.
-func (conn Connection) LookupDomainByUUID(uuid string) (Domain, *Error) {
+func (conn Connection) LookupDomainByUUID(uuid string) (Domain, error) {
 	cUUID := C.CString(uuid)
 	defer C.free(unsafe.Pointer(cUUID))
 
@@ -564,7 +564,7 @@ func (conn Connection) LookupDomainByUUID(uuid string) (Domain, *Error) {
 }
 
 // RestoreDomain restores a domain saved to disk by Save().
-func (conn Connection) RestoreDomain(from string, xml string, flags DomainSaveFlag) *Error {
+func (conn Connection) RestoreDomain(from string, xml string, flags DomainSaveFlag) error {
 	cFrom := C.CString(from)
 	defer C.free(unsafe.Pointer(cFrom))
 
