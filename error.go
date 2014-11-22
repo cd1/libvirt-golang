@@ -53,30 +53,30 @@ const (
 	ErrSystem
 	ErrRPC
 	ErrGNUTLS
-	ErrVirWarNoNetwork
+	WarNoNetwork
 	ErrNoDomain
 	ErrNoNetwork
 	ErrInvalidMAC
 	ErrAuthFailed
 	ErrInvalidStoragePool
 	ErrInvalidStorageVol
-	ErrVirWarNoStorage
+	WarNoStorage
 	ErrNoStoragePool
 	ErrNoStorageVol
-	ErrVirWarNoNode
+	WarNoNode
 	ErrInvalidNodeDevice
 	ErrNoNodeDevice
-	ErrNoSecurityLabel
+	ErrNoSecurityModel
 	ErrOperationInvalid
-	ErrVirWarNoInterface
+	WarNoInterface
 	ErrNoInterface
 	ErrInvalidInterface
 	ErrMultipleInterfaces
-	ErrVirWarNoNwFilter
+	WarNoNwFilter
 	ErrInvalidNwFilter
 	ErrNoNwFilter
 	ErrBuildFirewall
-	ErrVirWarNoSecret
+	WarNoSecret
 	ErrInvalidSecret
 	ErrNoSecret
 	ErrConfigUnsupported
