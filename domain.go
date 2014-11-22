@@ -11,26 +11,26 @@ import (
 	"unsafe"
 )
 
-// DomainFlag defines a filter when listing domains.
-type DomainFlag uint32
+// DomainListFlag defines a filter when listing domains.
+type DomainListFlag uint32
 
-// Possible values for DomainFlag.
+// Possible values for DomainListFlag.
 const (
-	DomAll           DomainFlag = 0
-	DomActive        DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_ACTIVE
-	DomInactive      DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_INACTIVE
-	DomPersistent    DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_PERSISTENT
-	DomTransient     DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_TRANSIENT
-	DomRunning       DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_RUNNING
-	DomPaused        DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_PAUSED
-	DomShutOff       DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_SHUTOFF
-	DomOther         DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_OTHER
-	DomManagedSave   DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE
-	DomNoManagedSave DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE
-	DomAutostart     DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_AUTOSTART
-	DomNoAutostart   DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART
-	DomHasSnapshot   DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT
-	DomNoSnapshot    DomainFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT
+	DomListAll           DomainListFlag = 0
+	DomListActive        DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_ACTIVE
+	DomListInactive      DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_INACTIVE
+	DomListPersistent    DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_PERSISTENT
+	DomListTransient     DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_TRANSIENT
+	DomListRunning       DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_RUNNING
+	DomListPaused        DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_PAUSED
+	DomListShutOff       DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_SHUTOFF
+	DomListOther         DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_OTHER
+	DomListManagedSave   DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE
+	DomListNoManagedSave DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE
+	DomListAutostart     DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_AUTOSTART
+	DomListNoAutostart   DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART
+	DomListHasSnapshot   DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT
+	DomListNoSnapshot    DomainListFlag = C.VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT
 )
 
 // DomainMetadataType defines a type of metadata element.
@@ -71,11 +71,11 @@ type DomainCreateFlag uint32
 
 // Possible values for DomainCreateFlag.
 const (
-	DomCreateDefault          DomainCreateFlag = C.VIR_DOMAIN_NONE
-	DomCreateStartPaused      DomainCreateFlag = C.VIR_DOMAIN_START_PAUSED
-	DomCreateStartAutodestroy DomainCreateFlag = C.VIR_DOMAIN_START_AUTODESTROY
-	DomCreateStartBypassCache DomainCreateFlag = C.VIR_DOMAIN_START_BYPASS_CACHE
-	DomCreateStartForceBoot   DomainCreateFlag = C.VIR_DOMAIN_START_FORCE_BOOT
+	DomCreateDefault     DomainCreateFlag = C.VIR_DOMAIN_NONE
+	DomCreatePaused      DomainCreateFlag = C.VIR_DOMAIN_START_PAUSED
+	DomCreateAutodestroy DomainCreateFlag = C.VIR_DOMAIN_START_AUTODESTROY
+	DomCreateBypassCache DomainCreateFlag = C.VIR_DOMAIN_START_BYPASS_CACHE
+	DomCreateForceBoot   DomainCreateFlag = C.VIR_DOMAIN_START_FORCE_BOOT
 )
 
 // DomainDestroyFlag defines how a domain should be destroyed.
@@ -263,15 +263,15 @@ const (
 	DomDeviceModifyForce   DomainDeviceModifyFlag = C.VIR_DOMAIN_DEVICE_MODIFY_FORCE
 )
 
-// DomainMemoryFlag controls how the domain memory should be modified.
-type DomainMemoryFlag uint32
+// DomainMemoryModifyFlag controls how the domain memory should be modified.
+type DomainMemoryModifyFlag uint32
 
-// Possible values for DomainMemoryFlag.
+// Possible values for DomainMemoryModifyFlag.
 const (
-	DomMemoryConfig  DomainMemoryFlag = C.VIR_DOMAIN_MEM_CONFIG
-	DomMemoryCurrent DomainMemoryFlag = C.VIR_DOMAIN_MEM_CURRENT
-	DomMemoryLive    DomainMemoryFlag = C.VIR_DOMAIN_MEM_LIVE
-	DomMemoryMaximum DomainMemoryFlag = C.VIR_DOMAIN_MEM_MAXIMUM
+	DomMemoryConfig  DomainMemoryModifyFlag = C.VIR_DOMAIN_MEM_CONFIG
+	DomMemoryCurrent DomainMemoryModifyFlag = C.VIR_DOMAIN_MEM_CURRENT
+	DomMemoryLive    DomainMemoryModifyFlag = C.VIR_DOMAIN_MEM_LIVE
+	DomMemoryMaximum DomainMemoryModifyFlag = C.VIR_DOMAIN_MEM_MAXIMUM
 )
 
 // DomainKeycodeSet defines a code set of keycodes.
@@ -1131,7 +1131,7 @@ func (dom Domain) SetAutostart(autostart bool) error {
 
 // SetMemory dynamically changes the target amount of physical memory allocated
 // to a domain. This function may require privileged access to the hypervisor.
-func (dom Domain) SetMemory(memory uint64, flags DomainMemoryFlag) error {
+func (dom Domain) SetMemory(memory uint64, flags DomainMemoryModifyFlag) error {
 	dom.log.Printf("changing domain memory to %v kiB (flags = %v)...\n", memory, flags)
 	cRet := C.virDomainSetMemoryFlags(dom.virDomain, C.ulong(memory), C.uint(flags))
 	ret := int32(cRet)

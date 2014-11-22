@@ -218,7 +218,7 @@ func TestListDomains(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
-	domains, err := conn.ListDomains(DomAll)
+	domains, err := conn.ListDomains(DomListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestDefineAndUndefineDomain(t *testing.T) {
 }
 
 func TestLookupDomainByID(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -317,7 +317,7 @@ func TestLookupDomainByID(t *testing.T) {
 }
 
 func TestLookupDomainByName(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -337,7 +337,7 @@ func TestLookupDomainByName(t *testing.T) {
 }
 
 func TestLookupDomainByUUID(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 

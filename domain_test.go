@@ -162,7 +162,7 @@ func TestDomainHostname(t *testing.T) {
 }
 
 func TestDomainID(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -269,7 +269,7 @@ func TestDomainMetadata(t *testing.T) {
 }
 
 func TestDomainReboot(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -283,7 +283,7 @@ func TestDomainReboot(t *testing.T) {
 }
 
 func TestDomainReset(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -293,7 +293,7 @@ func TestDomainReset(t *testing.T) {
 }
 
 func TestDomainShutdown(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -303,7 +303,7 @@ func TestDomainShutdown(t *testing.T) {
 }
 
 func TestDomainSuspendResume(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -344,7 +344,7 @@ func TestDomainSuspendResume(t *testing.T) {
 }
 
 func TestDomainCoreDump(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -402,7 +402,7 @@ func TestDomainMemory(t *testing.T) {
 		t.Error("an error was not returned when setting the domain memory to 0")
 	}
 
-	if err := dom.SetMemory(newMemory, DomainMemoryFlag(99)); err == nil {
+	if err := dom.SetMemory(newMemory, DomainMemoryModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid flag to set the domain memory")
 	}
 
@@ -724,7 +724,7 @@ func TestDomainManagedSave(t *testing.T) {
 func TestDomainSendKey(t *testing.T) {
 	CtrlAltDel := []uint32{29, 56, 111}
 
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -734,7 +734,7 @@ func TestDomainSendKey(t *testing.T) {
 }
 
 func TestDomainSendProcessSignal(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 
@@ -748,7 +748,7 @@ func TestDomainSendProcessSignal(t *testing.T) {
 }
 
 func BenchmarkSuspendResume(b *testing.B) {
-	dom, conn := createTestDomain(b, DomCreateStartAutodestroy)
+	dom, conn := createTestDomain(b, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
 

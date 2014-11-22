@@ -412,7 +412,7 @@ func (conn Connection) MaxVCPUs(typ string) (int32, error) {
 
 // ListDomains collects a possibly-filtered list of all domains, and return an
 // array of information for each.
-func (conn Connection) ListDomains(flags DomainFlag) ([]Domain, error) {
+func (conn Connection) ListDomains(flags DomainListFlag) ([]Domain, error) {
 	var cDomains []C.virDomainPtr
 	domainsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cDomains))
 
