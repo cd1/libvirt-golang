@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	DomTestDevice1XMLFile    = "res/cdrom-log.xml"
-	DomTestDevice2XMLFile    = "res/cdrom-tmp.xml"
 	DomTestMaxMemory         = 131072 // KiB
 	DomTestMemory            = 131072 // KiB
 	DomTestMetadataContent   = "<message>Hello world</message>"
@@ -22,18 +20,50 @@ const (
 	DomTestOSType            = "hvm"
 	DomTestUUID              = "9652e5cd-15f1-49ad-af73-63a502a9e2b8"
 	DomTestVCPUs             = 1
-	DomTestXMLFile           = "res/dom-test.xml"
 )
+
+const DomTestDevice1XML = `
+<disk type="dir" device="cdrom">
+    <driver name="qemu" type="raw" />
+    <source dir="/var/log/" />
+    <target dev="hdc" />
+    <readonly />
+</disk>`
+
+const DomTestDevice2XML = `
+<disk type="dir" device="cdrom">
+    <driver name="qemu" type="raw" />
+    <source dir="/var/tmp/" />
+    <target dev="hdc" />
+    <readonly />
+</disk>`
+
+const DomTestXML = `
+<domain type='kvm'>
+    <name>golang-test</name>
+    <uuid>9652e5cd-15f1-49ad-af73-63a502a9e2b8</uuid>
+    <metadata>
+        <golang:message xmlns:golang="code.google.com/p/libvirt-golang">Hello world</golang:message>
+    </metadata>
+    <memory>131072</memory>
+    <vcpu>1</vcpu>
+    <os>
+        <type arch="i686">hvm</type>
+    </os>
+    <clock sync="localtime"/>
+    <devices>
+        <emulator>/usr/bin/qemu-kvm</emulator>
+        <interface type='network'>
+            <source network='default'/>
+            <mac address='24:42:53:21:52:45'/>
+        </interface>
+    </devices>
+</domain>`
 
 func createTestDomain(t testing.TB, flags DomainCreateFlag) (Domain, Connection) {
 	conn := openTestConnection(t)
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-
-	dom, err := conn.CreateDomain(string(xml), flags)
+	dom, err := conn.CreateDomain(DomTestXML, flags)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,12 +74,7 @@ func createTestDomain(t testing.TB, flags DomainCreateFlag) (Domain, Connection)
 func defineTestDomain(t testing.TB) (Domain, Connection) {
 	conn := openTestConnection(t)
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-
-	dom, err := conn.DefineDomain(string(xml))
+	dom, err := conn.DefineDomain(DomTestXML)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -610,37 +635,27 @@ func TestDomainDevices(t *testing.T) {
 		t.Error("an error was not returned when updating an empty XML")
 	}
 
-	xml, ioerr := ioutil.ReadFile(DomTestDevice1XMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-
-	if err := dom.AttachDevice(string(xml), DomainDeviceModifyFlag(99)); err == nil {
+	if err := dom.AttachDevice(DomTestDevice1XML, DomainDeviceModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when attaching a device with an invalid modify flag")
 	}
 
-	if err := dom.DetachDevice(string(xml), DomainDeviceModifyFlag(99)); err == nil {
+	if err := dom.DetachDevice(DomTestDevice1XML, DomainDeviceModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when detaching a device with an invalid modify flag")
 	}
 
-	if err := dom.UpdateDevice(string(xml), DomainDeviceModifyFlag(99)); err == nil {
+	if err := dom.UpdateDevice(DomTestDevice1XML, DomainDeviceModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when updating a device with an invalid modify flag")
 	}
 
-	if err := dom.AttachDevice(string(xml), DomDeviceModifyCurrent); err != nil {
+	if err := dom.AttachDevice(DomTestDevice1XML, DomDeviceModifyCurrent); err != nil {
 		t.Fatal(err)
 	}
 
-	xml, ioerr = ioutil.ReadFile(DomTestDevice2XMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-
-	if err := dom.UpdateDevice(string(xml), DomDeviceModifyCurrent); err != nil {
+	if err := dom.UpdateDevice(DomTestDevice2XML, DomDeviceModifyCurrent); err != nil {
 		t.Error(err)
 	}
 
-	if err := dom.DetachDevice(string(xml), DomDeviceModifyCurrent); err != nil {
+	if err := dom.DetachDevice(DomTestDevice2XML, DomDeviceModifyCurrent); err != nil {
 		t.Error(err)
 	}
 }

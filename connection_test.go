@@ -66,11 +66,7 @@ func TestConnectionOpenReadOnly(t *testing.T) {
 		t.Error("the libvirt connection is not secure")
 	}
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-	if _, err := conn.DefineDomain(string(xml)); err == nil {
+	if _, err := conn.DefineDomain(DomTestXML); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining domains")
 	}
 }
@@ -238,16 +234,11 @@ func TestConnectionCreateAndDestroyDomain(t *testing.T) {
 		t.Error("an error was not returned when creating a domain with empty XML description")
 	}
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-
-	if _, err := conn.CreateDomain(string(xml), DomainCreateFlag(99)); err == nil {
+	if _, err := conn.CreateDomain(DomTestXML, DomainCreateFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid create flag")
 	}
 
-	dom, err := conn.CreateDomain(string(xml), DomCreateDefault)
+	dom, err := conn.CreateDomain(DomTestXML, DomCreateDefault)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,12 +257,7 @@ func TestConnectionDefineAndUndefineDomain(t *testing.T) {
 		t.Error("an error was not returned when defining a domain with empty XML description")
 	}
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		t.Fatal(ioerr)
-	}
-
-	dom, err := conn.DefineDomain(string(xml))
+	dom, err := conn.DefineDomain(DomTestXML)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,14 +379,9 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		b.Fatal(ioerr)
-	}
-
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		dom, err := conn.CreateDomain(string(xml), DomCreateDefault)
+		dom, err := conn.CreateDomain(DomTestXML, DomCreateDefault)
 		if err != nil {
 			b.Error(err)
 		}
@@ -426,14 +407,9 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	xml, ioerr := ioutil.ReadFile(DomTestXMLFile)
-	if ioerr != nil {
-		b.Fatal(ioerr)
-	}
-
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		dom, err := conn.DefineDomain(string(xml))
+		dom, err := conn.DefineDomain(DomTestXML)
 		if err != nil {
 			b.Error(err)
 		}
