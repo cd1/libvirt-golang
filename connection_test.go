@@ -23,7 +23,7 @@ func openTestConnection(t testing.TB) Connection {
 	return conn
 }
 
-func TestOpen(t *testing.T) {
+func TestConnectionOpen(t *testing.T) {
 	if _, err := Open(utils.RandomString(), ReadWrite, testLog); err == nil {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
@@ -45,7 +45,7 @@ func TestOpen(t *testing.T) {
 	}
 }
 
-func TestOpenReadOnly(t *testing.T) {
+func TestConnectionOpenReadOnly(t *testing.T) {
 	if _, err := Open(utils.RandomString(), ReadOnly, testLog); err == nil {
 		t.Error("an error was not returned when connecting (RO) to a bad URI")
 	}
@@ -75,7 +75,7 @@ func TestOpenReadOnly(t *testing.T) {
 	}
 }
 
-func TestVersion(t *testing.T) {
+func TestConnectionVersion(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -84,7 +84,7 @@ func TestVersion(t *testing.T) {
 	}
 }
 
-func TestLibVersion(t *testing.T) {
+func TestConnectionLibVersion(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -93,7 +93,7 @@ func TestLibVersion(t *testing.T) {
 	}
 }
 
-func TestCapabilities(t *testing.T) {
+func TestConnectionCapabilities(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -107,7 +107,7 @@ func TestCapabilities(t *testing.T) {
 	}
 }
 
-func TestHostname(t *testing.T) {
+func TestConnectionHostname(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -121,7 +121,7 @@ func TestHostname(t *testing.T) {
 	}
 }
 
-func TestSysinfo(t *testing.T) {
+func TestConnectionSysinfo(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -135,7 +135,7 @@ func TestSysinfo(t *testing.T) {
 	}
 }
 
-func TestType(t *testing.T) {
+func TestConnectionType(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -149,7 +149,7 @@ func TestType(t *testing.T) {
 	}
 }
 
-func TestURI(t *testing.T) {
+func TestConnectionURI(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -163,7 +163,7 @@ func TestURI(t *testing.T) {
 	}
 }
 
-func TestRef(t *testing.T) {
+func TestConnectionRef(t *testing.T) {
 	conn := openTestConnection(t)
 
 	if err := conn.Ref(); err != nil {
@@ -178,7 +178,7 @@ func TestRef(t *testing.T) {
 	}
 }
 
-func TestCPUModelNames(t *testing.T) {
+func TestConnectionCPUModelNames(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -196,7 +196,7 @@ func TestCPUModelNames(t *testing.T) {
 	}
 }
 
-func TestMaxVCPUs(t *testing.T) {
+func TestConnectionMaxVCPUs(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -214,7 +214,7 @@ func TestMaxVCPUs(t *testing.T) {
 	}
 }
 
-func TestListDomains(t *testing.T) {
+func TestConnectionListDomains(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -230,7 +230,7 @@ func TestListDomains(t *testing.T) {
 	}
 }
 
-func TestCreateAndDestroyDomain(t *testing.T) {
+func TestConnectionCreateAndDestroyDomain(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -258,7 +258,7 @@ func TestCreateAndDestroyDomain(t *testing.T) {
 	}
 }
 
-func TestDefineAndUndefineDomain(t *testing.T) {
+func TestConnectionDefineAndUndefineDomain(t *testing.T) {
 	conn := openTestConnection(t)
 	defer conn.Close()
 
@@ -286,7 +286,7 @@ func TestDefineAndUndefineDomain(t *testing.T) {
 	}
 }
 
-func TestLookupDomainByID(t *testing.T) {
+func TestConnectionLookupDomainByID(t *testing.T) {
 	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
@@ -316,7 +316,7 @@ func TestLookupDomainByID(t *testing.T) {
 	}
 }
 
-func TestLookupDomainByName(t *testing.T) {
+func TestConnectionLookupDomainByName(t *testing.T) {
 	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
@@ -336,7 +336,7 @@ func TestLookupDomainByName(t *testing.T) {
 	}
 }
 
-func TestLookupDomainByUUID(t *testing.T) {
+func TestConnectionLookupDomainByUUID(t *testing.T) {
 	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
@@ -361,7 +361,7 @@ func TestLookupDomainByUUID(t *testing.T) {
 	}
 }
 
-func BenchmarkQEMUConnection(b *testing.B) {
+func BenchmarkConnectionQEMU(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(qemuSystemURI, ReadWrite, testLog)
 		if err != nil {
@@ -374,7 +374,7 @@ func BenchmarkQEMUConnection(b *testing.B) {
 	}
 }
 
-func BenchmarkTestConnection(b *testing.B) {
+func BenchmarkConnectionTest(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testDefaultURI, ReadWrite, testLog)
 		if err != nil {
@@ -387,7 +387,7 @@ func BenchmarkTestConnection(b *testing.B) {
 	}
 }
 
-func BenchmarkCreateDomain(b *testing.B) {
+func BenchmarkConnectionCreateDomain(b *testing.B) {
 	conn, err := Open(qemuSystemURI, ReadWrite, testLog)
 	if err != nil {
 		b.Fatal(err)
@@ -420,7 +420,7 @@ func BenchmarkCreateDomain(b *testing.B) {
 	}
 }
 
-func BenchmarkDefineDomain(b *testing.B) {
+func BenchmarkConnectionDefineDomain(b *testing.B) {
 	conn, err := Open(qemuSystemURI, ReadWrite, testLog)
 	if err != nil {
 		b.Fatal(err)

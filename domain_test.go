@@ -747,7 +747,7 @@ func TestDomainSendProcessSignal(t *testing.T) {
 	}
 }
 
-func BenchmarkSuspendResume(b *testing.B) {
+func BenchmarkDomainSuspendResume(b *testing.B) {
 	dom, conn := createTestDomain(b, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
@@ -765,7 +765,7 @@ func BenchmarkSuspendResume(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkSaveRestore(b *testing.B) {
+func BenchmarkDomainSaveRestore(b *testing.B) {
 	dom, conn := defineTestDomain(b)
 	defer conn.Close()
 	defer dom.Free()
@@ -795,7 +795,7 @@ func BenchmarkSaveRestore(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkManagedSave(b *testing.B) {
+func BenchmarkDomainManagedSave(b *testing.B) {
 	dom, conn := defineTestDomain(b)
 	defer conn.Close()
 	defer dom.Free()
