@@ -1,6 +1,7 @@
 package libvirt
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -82,6 +83,49 @@ func defineTestDomain(t testing.TB) (Domain, Connection) {
 	return dom, conn
 }
 
+func TestDomainInit(t *testing.T) {
+	dom, conn := defineTestDomain(t)
+	defer conn.Close()
+	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if dom.HasCurrentSnapshot() {
+		t.Error("test domain should not have a current snapshot initially")
+	}
+
+	if dom.IsUpdated() {
+		t.Error("test domain should not have been updated initially")
+	}
+
+	os, err := dom.OSType()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if os != DomTestOSType {
+		t.Errorf("wrong test domain OS type; got=%v, want=%v", os, DomTestOSType)
+	}
+
+	name := dom.Name()
+
+	if name != DomTestName {
+		t.Errorf("wrong test domain name; got=%v, want=%v", name, DomTestName)
+	}
+
+	if _, err = dom.Hostname(); err == nil {
+		t.Error("\"Hostname\" should not be supported by the \"QEMU\" driver")
+	}
+
+	uuid, err := dom.UUID()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if uuid != DomTestUUID {
+		t.Errorf("wrong test domain UUID; got=%v, want=%v", uuid, DomTestUUID)
+	}
+}
+
 func TestDomainAutostart(t *testing.T) {
 	dom, conn := defineTestDomain(t)
 	defer conn.Close()
@@ -101,91 +145,6 @@ func TestDomainAutostart(t *testing.T) {
 	}
 }
 
-func TestDomainHasCurrentSnapshot(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if dom.HasCurrentSnapshot() {
-		t.Error("test domain should not have current snapshot")
-	}
-}
-
-func TestDomainIsActive(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if dom.IsActive() {
-		t.Error("test domain should not be active")
-	}
-}
-
-func TestDomainIsPersistent(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if !dom.IsPersistent() {
-		t.Error("test domain should be persistent")
-	}
-}
-
-func TestDomainIsUpdated(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if dom.IsUpdated() {
-		t.Error("test domain should not have been updated")
-	}
-}
-
-func TestDomainOSType(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	os, err := dom.OSType()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if os != DomTestOSType {
-		t.Errorf("wrong test domain OS type; got=%s, want=%s", os, DomTestOSType)
-	}
-}
-
-func TestDomainName(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	name := dom.Name()
-
-	if name != DomTestName {
-		t.Errorf("wrong test domain name; got=%s, want=%s", name, DomTestName)
-	}
-}
-
-func TestDomainHostname(t *testing.T) {
-	// Hostname is not supported by the "QEMU" driver
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if _, err := dom.Hostname(); err == nil {
-		t.Error("Hostname should not be supported by the \"QEMU\" driver")
-	}
-}
-
 func TestDomainID(t *testing.T) {
 	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
@@ -194,22 +153,6 @@ func TestDomainID(t *testing.T) {
 	_, err := dom.ID()
 	if err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestDomainUUID(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	uuid, err := dom.UUID()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if uuid != DomTestUUID {
-		t.Errorf("wrong test domain UUID; got=%s, want=%s", uuid, DomTestUUID)
 	}
 }
 
@@ -276,7 +219,7 @@ func TestDomainMetadata(t *testing.T) {
 	}
 
 	if metadata != DomTestMetadataContent {
-		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, DomTestMetadataContent)
+		t.Errorf("wrong metadata content; got=\"%v\", want=\"%v\"", metadata, DomTestMetadataContent)
 	}
 
 	if err = dom.SetMetadata(DomMetaElement, newMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomAffectCurrent); err != nil {
@@ -289,14 +232,23 @@ func TestDomainMetadata(t *testing.T) {
 	}
 
 	if metadata != strings.TrimSpace(newMetadata) {
-		t.Errorf("wrong metadata content; got=\"%s\", want=\"%s\"", metadata, newMetadata)
+		t.Errorf("wrong metadata content; got=\"%v\", want=\"%v\"", metadata, newMetadata)
 	}
 }
 
 func TestDomainReboot(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Reboot(DomRebootDefault); err == nil {
+		t.Error("an error was not returned when trying to reboot an offline domain")
+	}
+
+	if err := dom.Create(DomCreateAutodestroy); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := dom.Reboot(DomainRebootFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid reboot flag")
@@ -308,9 +260,18 @@ func TestDomainReboot(t *testing.T) {
 }
 
 func TestDomainReset(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Reset(); err == nil {
+		t.Error("an error was not returned when trying to reset an offline domain")
+	}
+
+	if err := dom.Create(DomCreateAutodestroy); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := dom.Reset(); err != nil {
 		t.Error(err)
@@ -318,12 +279,30 @@ func TestDomainReset(t *testing.T) {
 }
 
 func TestDomainShutdown(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
+	dom, conn := defineTestDomain(t)
 	defer conn.Close()
 	defer dom.Free()
+	defer dom.Undefine(DomUndefineDefault)
+
+	if err := dom.Shutdown(); err == nil {
+		t.Error("an error was not returned when trying to shutdown an offline domain")
+	}
+
+	if err := dom.Create(DomCreateAutodestroy); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := dom.Shutdown(); err != nil {
 		t.Error(err)
+	}
+
+	state, reason, err := dom.State()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if state != DomStateShutoff && DomainShutoffReason(reason) != DomShutoffReasonShutdown {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStateShutoff, DomShutoffReasonShutdown)
 	}
 }
 
@@ -332,26 +311,17 @@ func TestDomainSuspendResume(t *testing.T) {
 	defer conn.Close()
 	defer dom.Free()
 
+	if err := dom.Suspend(); err != nil {
+		t.Error(err)
+	}
+
 	state, reason, err := dom.State()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if state != DomStateRunning {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
-	}
-
-	if err = dom.Suspend(); err != nil {
-		t.Error(err)
-	}
-
-	state, reason, err = dom.State()
-	if err != nil {
-		t.Error(err)
-	}
-
-	if state != DomStatePaused {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStatePaused)
+	if state != DomStatePaused || DomainPausedReason(reason) != DomPausedReasonUser {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStatePaused, DomPausedReasonUser)
 	}
 
 	if err = dom.Resume(); err != nil {
@@ -363,8 +333,8 @@ func TestDomainSuspendResume(t *testing.T) {
 		t.Error(err)
 	}
 
-	if state != DomStateRunning {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	if state != DomStateRunning || DomainRunningReason(reason) != DomRunningReasonUnpaused {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStateRunning, DomRunningReasonUnpaused)
 	}
 }
 
@@ -377,19 +347,27 @@ func TestDomainCoreDump(t *testing.T) {
 		t.Error("a core dump file should not be generated into a directory path")
 	}
 
-	dumpFile := DomTestName + ".core"
+	dumpFile, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-coredump_", DomTestName))
+	if ioerr != nil {
+		t.Fatal(ioerr)
+	}
+	defer os.Remove(dumpFile.Name())
 
-	if err := dom.CoreDump(dumpFile, DomainDumpFlag(99)); err == nil {
+	if err := dom.CoreDump(dumpFile.Name(), DomainDumpFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid core dump flag")
 	}
 
-	if err := dom.CoreDump(dumpFile, DomDumpLive); err != nil {
+	if err := dom.CoreDump(dumpFile.Name(), DomDumpLive); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(dumpFile)
 
-	if _, err := os.Stat(dumpFile); os.IsNotExist(err) {
-		t.Errorf("core dump file was not generated [%s]", err)
+	stat, err := dumpFile.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if stat.Size() == 0 {
+		t.Error("core dump file was not generated (empty size)")
 	}
 }
 
@@ -437,7 +415,7 @@ func TestDomainMemory(t *testing.T) {
 	}
 
 	if memory != DomTestMaxMemory {
-		t.Errorf("wrong domain maximum memory; got=%d, want=%d", memory, DomTestMaxMemory)
+		t.Errorf("wrong domain maximum memory; got=%v, want=%v", memory, DomTestMaxMemory)
 	}
 
 	if err = dom.SetMemory(newMaxMemory, DomMemoryMaximum); err != nil {
@@ -449,7 +427,7 @@ func TestDomainMemory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if memory != newMaxMemory {
-		t.Errorf("wrong maximum memory; got=%d, want=%d", memory, newMaxMemory)
+		t.Errorf("wrong maximum memory; got=%v, want=%v", memory, newMaxMemory)
 	}
 
 	if err := dom.SetMemory(newMaxMemory+1, DomMemoryCurrent); err == nil {
@@ -488,7 +466,7 @@ func TestDomainVCPUs(t *testing.T) {
 	}
 
 	if vcpus != DomTestVCPUs {
-		t.Errorf("wrong VCPUs number; got=%d, want=%d", vcpus, DomTestVCPUs)
+		t.Errorf("wrong VCPUs number; got=%v, want=%v", vcpus, DomTestVCPUs)
 	}
 
 	if err = dom.SetVCPUs(newMaxVCPUs, DomVCPUsMaximum); err != nil {
@@ -508,15 +486,14 @@ func TestDomainVCPUs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if vcpus != newVCPUs {
-		t.Errorf("wrong VCPUs count; got=%d, want=%d", vcpus, newVCPUs)
+		t.Errorf("wrong VCPUs count; got=%v, want=%v", vcpus, newVCPUs)
 	}
 }
 
 func TestDomainInfo(t *testing.T) {
-	dom, conn := defineTestDomain(t)
+	dom, conn := createTestDomain(t, DomCreateAutodestroy)
 	defer conn.Close()
 	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
 
 	state, err := dom.InfoState()
 	if err != nil {
@@ -527,7 +504,7 @@ func TestDomainInfo(t *testing.T) {
 		t.Error(err)
 	}
 	if state != otherState {
-		t.Errorf("domain states obtained from different functions do not match; state1=%d, state2=%d", state, otherState)
+		t.Errorf("domain states obtained from different functions do not match; state1=%v, state2=%v", state, otherState)
 	}
 
 	maxMemory, err := dom.InfoMaxMemory()
@@ -539,7 +516,7 @@ func TestDomainInfo(t *testing.T) {
 		t.Error(err)
 	}
 	if maxMemory != otherMaxMemory {
-		t.Errorf("domain maximum memories obtained from different functions do not match; memory1=%d, memory2=%d", maxMemory, otherMaxMemory)
+		t.Errorf("domain maximum memories obtained from different functions do not match; memory1=%v, memory2=%v", maxMemory, otherMaxMemory)
 	}
 
 	vcpus, err := dom.InfoVCPUs()
@@ -551,7 +528,7 @@ func TestDomainInfo(t *testing.T) {
 		t.Error(err)
 	}
 	if vcpus != uint16(otherVcpus) {
-		t.Errorf("numbers of domain VCPUs obtained from different functions do not match; VCPUs1=%d, VCPUs2=%d", vcpus, otherVcpus)
+		t.Errorf("numbers of domain VCPUs obtained from different functions do not match; VCPUs1=%v, VCPUs2=%v", vcpus, otherVcpus)
 	}
 
 	memory, err := dom.InfoMemory()
@@ -559,7 +536,7 @@ func TestDomainInfo(t *testing.T) {
 		t.Error(err)
 	}
 	if memory != DomTestMemory {
-		t.Errorf("wrong memory value; got=%d, want=%d", memory, DomTestMemory)
+		t.Errorf("wrong memory value; got=%v, want=%v", memory, DomTestMemory)
 	}
 
 	if _, err = dom.InfoCPUTime(); err != nil {
@@ -582,7 +559,7 @@ func TestDomainSaveRestore(t *testing.T) {
 		t.Error("an error was not returned when using an invalid file name")
 	}
 
-	file, ioerr := ioutil.TempFile("", "test-save-restore_")
+	file, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-save-restore_", DomTestName))
 	if ioerr != nil {
 		t.Fatal(ioerr)
 	}
@@ -600,8 +577,8 @@ func TestDomainSaveRestore(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if state != DomStateShutoff {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateShutoff)
+	if state != DomStateShutoff && DomainShutoffReason(reason) != DomShutoffReasonSaved {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStateShutoff, DomShutoffReasonSaved)
 	}
 
 	if err = conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
@@ -612,8 +589,8 @@ func TestDomainSaveRestore(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if state != DomStateRunning {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, DomStateRunning)
+	if state != DomStateRunning && DomainRunningReason(reason) != DomRunningReasonRestored {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStateRunning, DomRunningReasonRestored)
 	}
 }
 
@@ -691,8 +668,8 @@ func TestDomainManagedSave(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if expectedState := DomStateShutoff; state != expectedState {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, expectedState)
+	if expectedState := DomStateShutoff; state != expectedState && DomainShutoffReason(reason) != DomShutoffReasonSaved {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomShutoffReasonSaved)
 	}
 
 	if err = dom.Create(DomCreateDefault); err != nil {
@@ -707,8 +684,8 @@ func TestDomainManagedSave(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if expectedState := DomStateRunning; state != expectedState {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, expectedState)
+	if expectedState := DomStateRunning; state != expectedState && DomainRunningReason(reason) != DomRunningReasonRestored {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomRunningReasonRestored)
 	}
 
 	if err := dom.ManagedSave(DomSaveDefault); err != nil {
@@ -719,8 +696,8 @@ func TestDomainManagedSave(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if expectedState := DomStateShutoff; state != expectedState {
-		t.Errorf("unexpected domain state; got=%d (reason %d), want=%d", state, reason, expectedState)
+	if expectedState := DomStateShutoff; state != expectedState && DomainShutoffReason(reason) != DomShutoffReasonSaved {
+		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomShutoffReasonSaved)
 	}
 
 	if !dom.HasManagedSaveImage() {
