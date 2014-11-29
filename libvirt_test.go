@@ -47,7 +47,7 @@ const testDomainXML = `
 
 // Configuration variables. Feel free to change them.
 var (
-	testConnectionURI = "qemu:///system"
+	testConnectionURI = "qemu:///session"
 	testLogOutput     = ioutil.Discard
 )
 

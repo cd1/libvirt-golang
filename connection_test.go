@@ -126,8 +126,16 @@ func TestConnectionInit(t *testing.T) {
 	}
 
 	_, err = env.conn.Sysinfo()
-	if err != nil {
-		t.Error(err)
+	// XXX: the function "<Connection>.Sysinfo" returns an error when the connection URI is "qemu:///session"
+	if testConnectionURI == "qemu:///session" {
+		if err == nil {
+			t.Error("the function \"<Connection>.Sysinfo\" isn't supported when the connection URI is \"qemu:///session\",",
+				"so it should always return an error")
+		}
+	} else {
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	_, err = env.conn.Type()
