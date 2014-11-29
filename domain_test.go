@@ -1,8 +1,10 @@
 package libvirt
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -11,162 +13,102 @@ import (
 	"github.com/cd1/utils-golang"
 )
 
-const (
-	DomTestMaxMemory         = 131072 // KiB
-	DomTestMemory            = 131072 // KiB
-	DomTestMetadataContent   = "<message>Hello world</message>"
-	DomTestMetadataKey       = "golang"
-	DomTestMetadataNamespace = "code.google.com/p/libvirt-golang"
-	DomTestName              = "golang-test"
-	DomTestOSType            = "hvm"
-	DomTestUUID              = "9652e5cd-15f1-49ad-af73-63a502a9e2b8"
-	DomTestVCPUs             = 1
-)
-
-const DomTestDevice1XML = `
-<disk type="dir" device="cdrom">
-    <driver name="qemu" type="raw" />
-    <source dir="/var/log/" />
-    <target dev="hdc" />
-    <readonly />
-</disk>`
-
-const DomTestDevice2XML = `
-<disk type="dir" device="cdrom">
-    <driver name="qemu" type="raw" />
-    <source dir="/var/tmp/" />
-    <target dev="hdc" />
-    <readonly />
-</disk>`
-
-const DomTestXML = `
-<domain type='kvm'>
-    <name>golang-test</name>
-    <uuid>9652e5cd-15f1-49ad-af73-63a502a9e2b8</uuid>
-    <metadata>
-        <golang:message xmlns:golang="code.google.com/p/libvirt-golang">Hello world</golang:message>
-    </metadata>
-    <memory>131072</memory>
-    <vcpu>1</vcpu>
-    <os>
-        <type arch="i686">hvm</type>
-    </os>
-    <clock sync="localtime"/>
-    <devices>
-        <emulator>/usr/bin/qemu-kvm</emulator>
-        <interface type='network'>
-            <source network='default'/>
-            <mac address='24:42:53:21:52:45'/>
-        </interface>
-    </devices>
-</domain>`
-
-func createTestDomain(t testing.TB, flags DomainCreateFlag) (Domain, Connection) {
-	conn := openTestConnection(t)
-
-	dom, err := conn.CreateDomain(DomTestXML, flags)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return dom, conn
-}
-
-func defineTestDomain(t testing.TB) (Domain, Connection) {
-	conn := openTestConnection(t)
-
-	dom, err := conn.DefineDomain(DomTestXML)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return dom, conn
-}
+var testCtrlAltDel = []uint32{29, 56, 111}
 
 func TestDomainInit(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if dom.HasCurrentSnapshot() {
+	if env.dom.HasCurrentSnapshot() {
 		t.Error("test domain should not have a current snapshot initially")
 	}
 
-	if dom.IsUpdated() {
+	if env.dom.IsUpdated() {
 		t.Error("test domain should not have been updated initially")
 	}
 
-	os, err := dom.OSType()
+	os, err := env.dom.OSType()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if os != DomTestOSType {
-		t.Errorf("wrong test domain OS type; got=%v, want=%v", os, DomTestOSType)
+	if os != env.domData.OSType {
+		t.Errorf("wrong test domain OS type; got=%v, want=%v", os, env.domData.OSType)
 	}
 
-	name := dom.Name()
+	name := env.dom.Name()
 
-	if name != DomTestName {
-		t.Errorf("wrong test domain name; got=%v, want=%v", name, DomTestName)
+	if name != env.domData.Name {
+		t.Errorf("wrong test domain name; got=%v, want=%v", name, env.domData.Name)
 	}
 
-	if _, err = dom.Hostname(); err == nil {
+	if _, err = env.dom.Hostname(); err == nil {
 		t.Error("\"Hostname\" should not be supported by the \"QEMU\" driver")
 	}
 
-	uuid, err := dom.UUID()
+	uuid, err := env.dom.UUID()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if uuid != DomTestUUID {
-		t.Errorf("wrong test domain UUID; got=%v, want=%v", uuid, DomTestUUID)
+	if uuid != env.domData.UUID {
+		t.Errorf("wrong test domain UUID; got=%v, want=%v", uuid, env.domData.UUID)
 	}
 }
 
 func TestDomainAutostart(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if dom.Autostart() {
+	if env.dom.Autostart() {
 		t.Error("test domain should not have autostart enabled by default")
 	}
 
-	if err := dom.SetAutostart(true); err != nil {
+	if err := env.dom.SetAutostart(true); err != nil {
 		t.Fatal(err)
 	}
 
-	if !dom.Autostart() {
+	if !env.dom.Autostart() {
 		t.Error("test domain should have autostart enabled after setting")
 	}
 }
 
 func TestDomainID(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	// TODO: if a domain is created with "<Domain>.Create" after
+	// "<Connection>.Define", it doesn't see to get an ID. as a workaround, we
+	// create it directly with "<Connection>.CreateDomain" because then it works.
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
 
-	_, err := dom.ID()
+	data := newTestDomainData()
+
+	var xml bytes.Buffer
+
+	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	dom, err := env.conn.CreateDomain(xml.String(), DomCreateAutodestroy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dom.Destroy(DomDestroyDefault)
+
+	_, err = dom.ID()
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestDomainXML(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if _, err := dom.XML(99); err == nil {
+	if _, err := env.dom.XML(99); err == nil {
 		t.Error("an error was not returned when using an invalid flag")
 	}
 
-	xml, err := dom.XML(DomXMLDefault)
+	xml, err := env.dom.XML(DomXMLDefault)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,126 +119,109 @@ func TestDomainXML(t *testing.T) {
 }
 
 func TestDomainMetadata(t *testing.T) {
-	const newMetadata = `
-        <messages>
-            <m1>foo</m1>
-            <m2>bar</m2>
-        </messages>
-    `
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
-
-	if err := dom.SetMetadata(DomainMetadataType(99), "", "", "", DomAffectCurrent); err == nil {
+	if err := env.dom.SetMetadata(DomainMetadataType(99), "", "", "", DomAffectCurrent); err == nil {
 		t.Error("an error was not returned when using an invalid type to set a domain metadata")
 	}
 
-	if err := dom.SetMetadata(DomMetaElement, "", "", "", DomAffectCurrent); err == nil {
+	if err := env.dom.SetMetadata(DomMetaElement, "", "", "", DomAffectCurrent); err == nil {
 		t.Error("an error was not returned when using an empty content to set a domain metadata")
 	}
 
-	if err := dom.SetMetadata(DomMetaElement, newMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomainModificationImpact(99)); err == nil {
+	var originalMetadataBuf bytes.Buffer
+
+	if err := testDomainMetadataTmpl.Execute(&originalMetadataBuf, env.domData); err != nil {
+		t.Fatal(err)
+	}
+	originalMetadata := originalMetadataBuf.String()
+
+	if err := env.dom.SetMetadata(DomMetaElement, originalMetadata, env.domData.MetadataKey, env.domData.MetadataNamespace, DomainModificationImpact(99)); err == nil {
 		t.Error("an error was not returned when using an invalid impact config to set a domain metadata")
 	}
 
-	if _, err := dom.Metadata(99, "", DomAffectCurrent); err == nil {
+	if err := env.dom.SetMetadata(DomMetaElement, originalMetadata, env.domData.MetadataKey, env.domData.MetadataNamespace, DomAffectCurrent); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := env.dom.Metadata(99, "", DomAffectCurrent); err == nil {
 		t.Error("an error was not returned when using an invalid type to get a domain metadata")
 	}
 
-	if _, err := dom.Metadata(DomMetaElement, utils.RandomString(), DomAffectCurrent); err == nil {
+	if _, err := env.dom.Metadata(DomMetaElement, utils.RandomString(), DomAffectCurrent); err == nil {
 		t.Error("an error was not returned when using a non-existing metadata tag to get a domain metadata")
 	}
 
-	if _, err := dom.Metadata(DomMetaElement, "", 99); err == nil {
+	if _, err := env.dom.Metadata(DomMetaElement, "", 99); err == nil {
 		t.Error("an error was not returned when using an invalid impact config to get a domain metadata")
 	}
 
-	metadata, err := dom.Metadata(DomMetaElement, DomTestMetadataNamespace, DomAffectCurrent)
+	metadata, err := env.dom.Metadata(DomMetaElement, env.domData.MetadataNamespace, DomAffectCurrent)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if metadata != DomTestMetadataContent {
-		t.Errorf("wrong metadata content; got=\"%v\", want=\"%v\"", metadata, DomTestMetadataContent)
-	}
-
-	if err = dom.SetMetadata(DomMetaElement, newMetadata, DomTestMetadataKey, DomTestMetadataNamespace, DomAffectCurrent); err != nil {
-		t.Fatal(err)
-	}
-
-	metadata, err = dom.Metadata(DomMetaElement, DomTestMetadataNamespace, DomAffectCurrent)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if metadata != strings.TrimSpace(newMetadata) {
-		t.Errorf("wrong metadata content; got=\"%v\", want=\"%v\"", metadata, newMetadata)
+	if metadata != strings.TrimSpace(originalMetadata) {
+		t.Errorf("wrong metadata content; got=\"%v\", want=\"%v\"", metadata, originalMetadata)
 	}
 }
 
 func TestDomainReboot(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Reboot(DomRebootDefault); err == nil {
+	if err := env.dom.Reboot(DomRebootDefault); err == nil {
 		t.Error("an error was not returned when trying to reboot an offline domain")
 	}
 
-	if err := dom.Create(DomCreateAutodestroy); err != nil {
+	if err := env.dom.Create(DomCreateAutodestroy); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := dom.Reboot(DomainRebootFlag(99)); err == nil {
+	if err := env.dom.Reboot(DomainRebootFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid reboot flag")
 	}
 
-	if err := dom.Reboot(DomRebootDefault); err != nil {
+	if err := env.dom.Reboot(DomRebootDefault); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDomainReset(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Reset(); err == nil {
+	if err := env.dom.Reset(); err == nil {
 		t.Error("an error was not returned when trying to reset an offline domain")
 	}
 
-	if err := dom.Create(DomCreateAutodestroy); err != nil {
+	if err := env.dom.Create(DomCreateAutodestroy); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := dom.Reset(); err != nil {
+	if err := env.dom.Reset(); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDomainShutdown(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Shutdown(); err == nil {
+	if err := env.dom.Shutdown(); err == nil {
 		t.Error("an error was not returned when trying to shutdown an offline domain")
 	}
 
-	if err := dom.Create(DomCreateAutodestroy); err != nil {
+	if err := env.dom.Create(DomCreateAutodestroy); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := dom.Shutdown(); err != nil {
+	if err := env.dom.Shutdown(); err != nil {
 		t.Error(err)
 	}
 
-	state, reason, err := dom.State()
+	state, reason, err := env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -307,15 +232,18 @@ func TestDomainShutdown(t *testing.T) {
 }
 
 func TestDomainSuspendResume(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Suspend(); err != nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.dom.Suspend(); err != nil {
 		t.Error(err)
 	}
 
-	state, reason, err := dom.State()
+	state, reason, err := env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -324,11 +252,11 @@ func TestDomainSuspendResume(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStatePaused, DomPausedReasonUser)
 	}
 
-	if err = dom.Resume(); err != nil {
+	if err = env.dom.Resume(); err != nil {
 		t.Error(err)
 	}
 
-	state, reason, err = dom.State()
+	state, reason, err = env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -339,25 +267,28 @@ func TestDomainSuspendResume(t *testing.T) {
 }
 
 func TestDomainCoreDump(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.CoreDump(".", DomDumpLive); err == nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.dom.CoreDump(".", DomDumpLive); err == nil {
 		t.Error("a core dump file should not be generated into a directory path")
 	}
 
-	dumpFile, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-coredump_", DomTestName))
+	dumpFile, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-coredump_", env.domData.Name))
 	if ioerr != nil {
 		t.Fatal(ioerr)
 	}
 	defer os.Remove(dumpFile.Name())
 
-	if err := dom.CoreDump(dumpFile.Name(), DomainDumpFlag(99)); err == nil {
+	if err := env.dom.CoreDump(dumpFile.Name(), DomainDumpFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid core dump flag")
 	}
 
-	if err := dom.CoreDump(dumpFile.Name(), DomDumpLive); err != nil {
+	if err := env.dom.CoreDump(dumpFile.Name(), DomDumpLive); err != nil {
 		t.Fatal(err)
 	}
 
@@ -372,134 +303,150 @@ func TestDomainCoreDump(t *testing.T) {
 }
 
 func TestDomainRef(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Undefine(DomUndefineDefault); err != nil {
+	if err := env.dom.Undefine(DomUndefineDefault); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := dom.Ref(); err != nil {
+	if err := env.dom.Ref(); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := dom.Free(); err != nil {
+	if err := env.dom.Free(); err != nil {
 		t.Error(err)
 	}
 
-	if err := dom.Free(); err != nil {
+	if err := env.dom.Free(); err != nil {
 		t.Error(err)
 	}
+
+	env.dom = nil
 }
 
 func TestDomainMemory(t *testing.T) {
-	const newMaxMemory = 1024 * 1024 * 10 // 10 GiB
-	const newMemory = 1024 * 1024 * 3     // 3 GiB
+	newMaxMemory := uint64(rand.Intn(1024))
+	newMemory := uint64(rand.Intn(int(newMaxMemory)))
 
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.SetMemory(0, DomMemoryCurrent); err == nil {
+	if err := env.dom.SetMemory(0, DomMemoryCurrent); err == nil {
 		t.Error("an error was not returned when setting the domain memory to 0")
 	}
 
-	if err := dom.SetMemory(newMemory, DomainMemoryModifyFlag(99)); err == nil {
+	if err := env.dom.SetMemory(newMemory, DomainMemoryModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid flag to set the domain memory")
 	}
 
-	memory, err := dom.MaxMemory()
+	maxMemory, err := env.dom.MaxMemory()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if memory != DomTestMaxMemory {
-		t.Errorf("wrong domain maximum memory; got=%v, want=%v", memory, DomTestMaxMemory)
+	if maxMemory != env.domData.MaxMemory {
+		t.Errorf("wrong domain maximum memory; got=%v, want=%v", maxMemory, env.domData.MaxMemory)
 	}
 
-	if err = dom.SetMemory(newMaxMemory, DomMemoryMaximum); err != nil {
+	if err = env.dom.SetMemory(newMaxMemory, DomMemoryMaximum); err != nil {
 		t.Fatal(err)
 	}
 
-	memory, err = dom.MaxMemory()
+	maxMemory, err = env.dom.MaxMemory()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if memory != newMaxMemory {
-		t.Errorf("wrong maximum memory; got=%v, want=%v", memory, newMaxMemory)
+	if maxMemory != newMaxMemory {
+		t.Errorf("wrong maximum memory; got=%v, want=%v", maxMemory, newMaxMemory)
 	}
 
-	if err := dom.SetMemory(newMaxMemory+1, DomMemoryCurrent); err == nil {
+	if err = env.dom.SetMemory(newMaxMemory+1, DomMemoryCurrent); err == nil {
 		t.Error("an error was not returned when setting a memory value greater than the maximum allowed")
 	}
 
-	if err = dom.SetMemory(newMemory, DomMemoryCurrent); err != nil {
+	if err = env.dom.SetMemory(newMemory, DomMemoryCurrent); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestDomainVCPUs(t *testing.T) {
-	const newMaxVCPUs = 8
-	const newVCPUs = 3
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	newMaxVCPUs := int32(rand.Intn(int(env.domData.MaxVCPUs)) + 1)
+	newVCPUs := int32(rand.Intn(int(newMaxVCPUs)) + 1)
 
-	if err := dom.SetVCPUs(0, DomVCPUsCurrent); err == nil {
+	if err := env.dom.SetVCPUs(0, DomVCPUsCurrent); err == nil {
 		t.Error("an error was not returned when setting an invalid VCPU number")
 	}
 
-	if err := dom.SetVCPUs(newVCPUs, DomainVCPUsFlag(99)); err == nil {
+	if err := env.dom.SetVCPUs(uint32(newVCPUs), DomainVCPUsFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid flag to set VCPU")
 	}
 
-	if _, err := dom.VCPUs(DomainVCPUsFlag(99)); err == nil {
+	if _, err := env.dom.VCPUs(DomainVCPUsFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid flag to get VCPU")
 	}
 
-	vcpus, err := dom.VCPUs(DomVCPUsCurrent)
+	vcpus, err := env.dom.VCPUs(DomVCPUsCurrent)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if vcpus != DomTestVCPUs {
-		t.Errorf("wrong VCPUs number; got=%v, want=%v", vcpus, DomTestVCPUs)
+	if vcpus != env.domData.VCPUs {
+		t.Errorf("wrong VCPUs number; got=%v, want=%v", vcpus, env.domData.VCPUs)
 	}
 
-	if err = dom.SetVCPUs(newMaxVCPUs, DomVCPUsMaximum); err != nil {
+	maxVCPUs, err := env.dom.VCPUs(DomVCPUsMaximum)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if maxVCPUs != env.domData.MaxVCPUs {
+		t.Errorf("wrong maximum VCPUs number; got=%v, want=%v", maxVCPUs, env.domData.MaxVCPUs)
+	}
+
+	if err = env.dom.SetVCPUs(uint32(newVCPUs), DomVCPUsCurrent); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = dom.SetVCPUs(newMaxVCPUs+1, DomVCPUsCurrent); err == nil {
-		t.Error("an error was not returned when setting a VCPU number greater than the maximum allowed")
-	}
-
-	if err = dom.SetVCPUs(newVCPUs, DomVCPUsCurrent); err != nil {
-		t.Fatal(err)
-	}
-
-	vcpus, err = dom.VCPUs(DomVCPUsCurrent)
+	vcpus, err = env.dom.VCPUs(DomVCPUsCurrent)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if vcpus != newVCPUs {
 		t.Errorf("wrong VCPUs count; got=%v, want=%v", vcpus, newVCPUs)
 	}
+
+	if err = env.dom.SetVCPUs(uint32(newMaxVCPUs), DomVCPUsMaximum); err != nil {
+		t.Fatal(err)
+	}
+
+	maxVCPUs, err = env.dom.VCPUs(DomVCPUsMaximum)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if maxVCPUs != newMaxVCPUs {
+		t.Errorf("wrong new maximum VCPUs number; got=%v, want=%v", maxVCPUs, newMaxVCPUs)
+	}
+
+	if err = env.dom.SetVCPUs(uint32(newMaxVCPUs+1), DomVCPUsCurrent); err == nil {
+		t.Error("an error was not returned when setting a VCPU number greater than the maximum allowed")
+	}
 }
 
 func TestDomainInfo(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	state, err := dom.InfoState()
+	if err := env.dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
+
+	state, err := env.dom.InfoState()
 	if err != nil {
 		t.Error(err)
 	}
-	otherState, _, err := dom.State()
+	otherState, _, err := env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -507,11 +454,11 @@ func TestDomainInfo(t *testing.T) {
 		t.Errorf("domain states obtained from different functions do not match; state1=%v, state2=%v", state, otherState)
 	}
 
-	maxMemory, err := dom.InfoMaxMemory()
+	maxMemory, err := env.dom.InfoMaxMemory()
 	if err != nil {
 		t.Error(err)
 	}
-	otherMaxMemory, err := dom.MaxMemory()
+	otherMaxMemory, err := env.dom.MaxMemory()
 	if err != nil {
 		t.Error(err)
 	}
@@ -519,11 +466,11 @@ func TestDomainInfo(t *testing.T) {
 		t.Errorf("domain maximum memories obtained from different functions do not match; memory1=%v, memory2=%v", maxMemory, otherMaxMemory)
 	}
 
-	vcpus, err := dom.InfoVCPUs()
+	vcpus, err := env.dom.InfoVCPUs()
 	if err != nil {
 		t.Error(err)
 	}
-	otherVcpus, err := dom.VCPUs(DomVCPUsCurrent)
+	otherVcpus, err := env.dom.VCPUs(DomVCPUsCurrent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -531,49 +478,46 @@ func TestDomainInfo(t *testing.T) {
 		t.Errorf("numbers of domain VCPUs obtained from different functions do not match; VCPUs1=%v, VCPUs2=%v", vcpus, otherVcpus)
 	}
 
-	memory, err := dom.InfoMemory()
+	memory, err := env.dom.InfoMemory()
 	if err != nil {
 		t.Error(err)
 	}
-	if memory != DomTestMemory {
-		t.Errorf("wrong memory value; got=%v, want=%v", memory, DomTestMemory)
+	if memory != env.domData.Memory {
+		t.Errorf("wrong memory value; got=%v, want=%v", memory, env.domData.Memory)
 	}
 
-	if _, err = dom.InfoCPUTime(); err != nil {
+	if _, err = env.dom.InfoCPUTime(); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDomainSaveRestore(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Create(DomCreateDefault); err != nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
 		t.Fatal(err)
 	}
-	defer dom.Destroy(DomDestroyDefault)
 
-	if err := dom.Save("", "", DomSaveDefault); err == nil {
+	if err := env.dom.Save("", "", DomSaveDefault); err == nil {
 		t.Error("an error was not returned when using an invalid file name")
 	}
 
-	file, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-save-restore_", DomTestName))
+	file, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-save-restore_", env.domData.Name))
 	if ioerr != nil {
 		t.Fatal(ioerr)
 	}
 	defer os.Remove(file.Name())
 
-	if err := dom.Save(file.Name(), "", DomainSaveFlag(99)); err == nil {
+	if err := env.dom.Save(file.Name(), "", DomainSaveFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid save flag")
 	}
 
-	if err := dom.Save(file.Name(), "", DomSaveDefault); err != nil {
+	if err := env.dom.Save(file.Name(), "", DomSaveDefault); err != nil {
 		t.Error(err)
 	}
 
-	state, reason, err := dom.State()
+	state, reason, err := env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -581,11 +525,11 @@ func TestDomainSaveRestore(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, DomStateShutoff, DomShutoffReasonSaved)
 	}
 
-	if err = conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
+	if err = env.conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
 		t.Error(err)
 	}
 
-	state, reason, err = dom.State()
+	state, reason, err = env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -595,76 +539,72 @@ func TestDomainSaveRestore(t *testing.T) {
 }
 
 func TestDomainDevices(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.AttachDevice("", DomDeviceModifyCurrent); err == nil {
+	if err := env.dom.AttachDevice("", DomDeviceModifyCurrent); err == nil {
 		t.Error("an error was not returned when attaching an empty XML")
 	}
 
-	if err := dom.DetachDevice("", DomDeviceModifyCurrent); err == nil {
+	if err := env.dom.DetachDevice("", DomDeviceModifyCurrent); err == nil {
 		t.Error("an error was not returned when detaching an empty XML")
 	}
 
-	if err := dom.UpdateDevice("", DomDeviceModifyCurrent); err == nil {
+	if err := env.dom.UpdateDevice("", DomDeviceModifyCurrent); err == nil {
 		t.Error("an error was not returned when updating an empty XML")
 	}
 
-	if err := dom.AttachDevice(DomTestDevice1XML, DomainDeviceModifyFlag(99)); err == nil {
+	if err := env.dom.AttachDevice(testDeviceLogXML, DomainDeviceModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when attaching a device with an invalid modify flag")
 	}
 
-	if err := dom.DetachDevice(DomTestDevice1XML, DomainDeviceModifyFlag(99)); err == nil {
+	if err := env.dom.DetachDevice(testDeviceLogXML, DomainDeviceModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when detaching a device with an invalid modify flag")
 	}
 
-	if err := dom.UpdateDevice(DomTestDevice1XML, DomainDeviceModifyFlag(99)); err == nil {
+	if err := env.dom.UpdateDevice(testDeviceLogXML, DomainDeviceModifyFlag(99)); err == nil {
 		t.Error("an error was not returned when updating a device with an invalid modify flag")
 	}
 
-	if err := dom.AttachDevice(DomTestDevice1XML, DomDeviceModifyCurrent); err != nil {
+	if err := env.dom.AttachDevice(testDeviceLogXML, DomDeviceModifyCurrent); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := dom.UpdateDevice(DomTestDevice2XML, DomDeviceModifyCurrent); err != nil {
+	if err := env.dom.UpdateDevice(testDeviceTmpXML, DomDeviceModifyCurrent); err != nil {
 		t.Error(err)
 	}
 
-	if err := dom.DetachDevice(DomTestDevice2XML, DomDeviceModifyCurrent); err != nil {
+	if err := env.dom.DetachDevice(testDeviceTmpXML, DomDeviceModifyCurrent); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDomainManagedSave(t *testing.T) {
-	dom, conn := defineTestDomain(t)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Create(DomCreateDefault); err != nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
 		t.Fatal(err)
 	}
 	// do not Destroy the domain - it will be already destroyed in the end
 
-	if err := dom.ManagedSave(DomainSaveFlag(99)); err == nil {
+	if err := env.dom.ManagedSave(DomainSaveFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid save flag")
 	}
 
-	if dom.HasManagedSaveImage() {
+	if env.dom.HasManagedSaveImage() {
 		t.Error("the test domain should not have a managed save image initially")
 	}
 
-	if err := dom.ManagedSave(DomSaveDefault); err != nil {
+	if err := env.dom.ManagedSave(DomSaveDefault); err != nil {
 		t.Error(err)
 	}
 
-	if !dom.HasManagedSaveImage() {
+	if !env.dom.HasManagedSaveImage() {
 		t.Error("the test domain should have a managed save image after creating a managed save image")
 	}
 
-	state, reason, err := dom.State()
+	state, reason, err := env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -672,15 +612,15 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomShutoffReasonSaved)
 	}
 
-	if err = dom.Create(DomCreateDefault); err != nil {
+	if err = env.dom.Create(DomCreateDefault); err != nil {
 		t.Error(err)
 	}
 
-	if dom.HasManagedSaveImage() {
+	if env.dom.HasManagedSaveImage() {
 		t.Error("the test domain should not have a managed save image anymore after starting from an existing managed save image")
 	}
 
-	state, reason, err = dom.State()
+	state, reason, err = env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -688,11 +628,11 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomRunningReasonRestored)
 	}
 
-	if err := dom.ManagedSave(DomSaveDefault); err != nil {
+	if err := env.dom.ManagedSave(DomSaveDefault); err != nil {
 		t.Error(err)
 	}
 
-	state, reason, err = dom.State()
+	state, reason, err = env.dom.State()
 	if err != nil {
 		t.Error(err)
 	}
@@ -700,57 +640,64 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomShutoffReasonSaved)
 	}
 
-	if !dom.HasManagedSaveImage() {
+	if !env.dom.HasManagedSaveImage() {
 		t.Error("the test domain should have a managed save image after creating a managed save image")
 	}
 
-	if err := dom.ManagedSaveRemove(); err != nil {
+	if err := env.dom.ManagedSaveRemove(); err != nil {
 		t.Error(err)
 	}
 
-	if dom.HasManagedSaveImage() {
+	if env.dom.HasManagedSaveImage() {
 		t.Error("the test domain should not have a managed save image anymore after removing it")
 	}
 }
 
 func TestDomainSendKey(t *testing.T) {
-	CtrlAltDel := []uint32{29, 56, 111}
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	if err := env.dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
 
-	if err := dom.SendKey(DomKeycodeSetLinux, time.Duration(50)*time.Millisecond, CtrlAltDel); err != nil {
+	if err := env.dom.SendKey(DomKeycodeSetLinux, time.Duration(50)*time.Millisecond, testCtrlAltDel); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDomainSendProcessSignal(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.SendProcessSignal(0, DomSIGNOP); err == nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.dom.SendProcessSignal(0, DomSIGNOP); err == nil {
 		t.Error("cannot send a signal to the process 0")
 	}
 
-	if err := dom.SendProcessSignal(1, DomSIGNOP); err == nil {
+	if err := env.dom.SendProcessSignal(1, DomSIGNOP); err == nil {
 		t.Error("the function \"SendProcessSignal\" should not be supported yet")
 	}
 }
 
 func BenchmarkDomainSuspendResume(b *testing.B) {
-	dom, conn := createTestDomain(b, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	env := newTestEnvironment(b).withDomain()
+	defer env.cleanUp()
+
+	if err := env.dom.Create(DomCreateDefault); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		if err := dom.Suspend(); err != nil {
+		if err := env.dom.Suspend(); err != nil {
 			b.Error(err)
 		}
 
-		if err := dom.Resume(); err != nil {
+		if err := env.dom.Resume(); err != nil {
 			b.Error(err)
 		}
 	}
@@ -758,17 +705,14 @@ func BenchmarkDomainSuspendResume(b *testing.B) {
 }
 
 func BenchmarkDomainSaveRestore(b *testing.B) {
-	dom, conn := defineTestDomain(b)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(b).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Create(DomCreateDefault); err != nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
 		b.Fatal(err)
 	}
-	defer dom.Destroy(DomDestroyDefault)
 
-	file, ioerr := ioutil.TempFile("", "bench-save-restore_")
+	file, ioerr := ioutil.TempFile("", fmt.Sprintf("%v-bench-save-restore_", env.domData.Name))
 	if ioerr != nil {
 		b.Fatal(ioerr)
 	}
@@ -776,11 +720,11 @@ func BenchmarkDomainSaveRestore(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		if err := dom.Save(file.Name(), "", DomSaveDefault); err != nil {
+		if err := env.dom.Save(file.Name(), "", DomSaveDefault); err != nil {
 			b.Error(err)
 		}
 
-		if err := conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
+		if err := env.conn.RestoreDomain(file.Name(), "", DomSaveDefault); err != nil {
 			b.Error(err)
 		}
 	}
@@ -788,23 +732,20 @@ func BenchmarkDomainSaveRestore(b *testing.B) {
 }
 
 func BenchmarkDomainManagedSave(b *testing.B) {
-	dom, conn := defineTestDomain(b)
-	defer conn.Close()
-	defer dom.Free()
-	defer dom.Undefine(DomUndefineDefault)
+	env := newTestEnvironment(b).withDomain()
+	defer env.cleanUp()
 
-	if err := dom.Create(DomCreateDefault); err != nil {
+	if err := env.dom.Create(DomCreateDefault); err != nil {
 		b.Fatal(err)
 	}
-	defer dom.Destroy(DomDestroyDefault)
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		if err := dom.ManagedSave(DomSaveDefault); err != nil {
+		if err := env.dom.ManagedSave(DomSaveDefault); err != nil {
 			b.Error(err)
 		}
 
-		if err := dom.Create(DomCreateDefault); err != nil {
+		if err := env.dom.Create(DomCreateDefault); err != nil {
 			b.Error(err)
 		}
 	}

@@ -1,34 +1,18 @@
 package libvirt
 
 import (
-	"io/ioutil"
+	"bytes"
 	"testing"
 
 	"github.com/cd1/utils-golang"
 )
 
-const (
-	qemuSystemURI  = "qemu:///system"
-	testDefaultURI = "test:///default"
-)
-
-var testLog = ioutil.Discard
-
-func openTestConnection(t testing.TB) Connection {
-	conn, err := Open(qemuSystemURI, ReadWrite, testLog)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return conn
-}
-
 func TestConnectionOpenClose(t *testing.T) {
-	if _, err := Open(utils.RandomString(), ReadWrite, testLog); err == nil {
+	if _, err := Open(utils.RandomString(), ReadWrite, testLogOutput); err == nil {
 		t.Error("an error was not returned when connecting to a bad URI")
 	}
 
-	conn, err := Open(qemuSystemURI, ReadWrite, testLog)
+	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,13 +35,13 @@ func TestConnectionOpenDefault(t *testing.T) {
 }
 
 func TestConnectionRef(t *testing.T) {
-	conn := openTestConnection(t)
+	env := newTestEnvironment(t)
 
-	if err := conn.Ref(); err != nil {
+	if err := env.conn.Ref(); err != nil {
 		t.Fatal(err)
 	}
 
-	ref, err := conn.Close()
+	ref, err := env.conn.Close()
 	if err != nil {
 		t.Error(err)
 	}
@@ -66,7 +50,7 @@ func TestConnectionRef(t *testing.T) {
 		t.Errorf("unexpected connection reference count after closing connection for the first time; got=%v, want=1", ref)
 	}
 
-	ref, err = conn.Close()
+	ref, err = env.conn.Close()
 	if err != nil {
 		t.Error("could not close the connection for the second time after calling Ref")
 	}
@@ -77,46 +61,53 @@ func TestConnectionRef(t *testing.T) {
 }
 
 func TestConnectionReadOnly(t *testing.T) {
-	conn, err := Open(qemuSystemURI, ReadOnly, testLog)
+	conn, err := Open(testConnectionURI, ReadOnly, testLogOutput)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer conn.Close()
 
-	if _, err := conn.DefineDomain(DomTestXML); err == nil {
+	var xml bytes.Buffer
+	data := newTestDomainData()
+
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := conn.DefineDomain(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining domains")
 	}
 
-	if _, err := conn.CreateDomain(DomTestXML, DomCreateDefault); err == nil {
+	if _, err := conn.CreateDomain(xml.String(), DomCreateDefault); err == nil {
 		t.Error("a readonly libvirt connection should not allow creating domains")
 	}
 }
 
 func TestConnectionInit(t *testing.T) {
-	conn := openTestConnection(t)
-	defer conn.Close()
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
 
-	if !conn.IsAlive() {
+	if !env.conn.IsAlive() {
 		t.Error("the libvirt connection was opened but it is not alive")
 	}
 
-	if conn.IsEncrypted() {
+	if env.conn.IsEncrypted() {
 		t.Error("the libvirt connection is encrypted (but it should not)")
 	}
 
-	if !conn.IsSecure() {
+	if !env.conn.IsSecure() {
 		t.Error("the libvirt connection is not secure (but it should)")
 	}
 
-	if _, err := conn.Version(); err != nil {
+	if _, err := env.conn.Version(); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := conn.LibVersion(); err != nil {
+	if _, err := env.conn.LibVersion(); err != nil {
 		t.Error(err)
 	}
 
-	cap, err := conn.Capabilities()
+	cap, err := env.conn.Capabilities()
 	if err != nil {
 		t.Error(err)
 	}
@@ -125,7 +116,7 @@ func TestConnectionInit(t *testing.T) {
 		t.Error("libvirt capabilities should not be empty")
 	}
 
-	hostname, err := conn.Hostname()
+	hostname, err := env.conn.Hostname()
 	if err != nil {
 		t.Error(err)
 	}
@@ -134,38 +125,30 @@ func TestConnectionInit(t *testing.T) {
 		t.Error("libvirt hostname should not be empty")
 	}
 
-	sysinfo, err := conn.Sysinfo()
+	_, err = env.conn.Sysinfo()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(sysinfo) == 0 {
-		t.Error("libvirt sysinfo should not be empty")
-	}
-
-	typ, err := conn.Type()
+	_, err = env.conn.Type()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(typ) == 0 {
-		t.Error("libvirt type should not be empty")
-	}
-
-	uri, err := conn.URI()
+	uri, err := env.conn.URI()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if uri != qemuSystemURI {
-		t.Errorf("libvirt URI should be the same used to open the connection; got=%v, want=%v", uri, qemuSystemURI)
+	if uri != testConnectionURI {
+		t.Errorf("libvirt URI should be the same used to open the connection; got=%v, want=%v", uri, testConnectionURI)
 	}
 
-	if _, err = conn.CPUModelNames(utils.RandomString()); err == nil {
+	if _, err = env.conn.CPUModelNames(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when getting CPU model names from invalid arch")
 	}
 
-	models, err := conn.CPUModelNames("x86_64")
+	models, err := env.conn.CPUModelNames("x86_64")
 	if err != nil {
 		t.Error(err)
 	}
@@ -174,11 +157,11 @@ func TestConnectionInit(t *testing.T) {
 		t.Error("libvirt CPU model names should not be empty")
 	}
 
-	if _, err = conn.MaxVCPUs(utils.RandomString()); err == nil {
+	if _, err = env.conn.MaxVCPUs(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when getting maximum VCPUs from invalid type")
 	}
 
-	vcpus, err := conn.MaxVCPUs("kvm")
+	vcpus, err := env.conn.MaxVCPUs("kvm")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,10 +172,10 @@ func TestConnectionInit(t *testing.T) {
 }
 
 func TestConnectionListDomains(t *testing.T) {
-	conn := openTestConnection(t)
-	defer conn.Close()
+	env := newTestEnvironment(t).withDomain()
+	defer env.cleanUp()
 
-	domains, err := conn.ListDomains(DomListAll)
+	domains, err := env.conn.ListDomains(DomListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,18 +188,25 @@ func TestConnectionListDomains(t *testing.T) {
 }
 
 func TestConnectionCreateDestroyDomain(t *testing.T) {
-	conn := openTestConnection(t)
-	defer conn.Close()
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
 
-	if _, err := conn.CreateDomain("", DomCreateDefault); err == nil {
+	if _, err := env.conn.CreateDomain("", DomCreateDefault); err == nil {
 		t.Error("an error was not returned when creating a domain with empty XML descriptor")
 	}
 
-	if _, err := conn.CreateDomain(DomTestXML, DomainCreateFlag(99)); err == nil {
+	var xml bytes.Buffer
+	data := newTestDomainData()
+
+	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := env.conn.CreateDomain(xml.String(), DomainCreateFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid create flag")
 	}
 
-	dom, err := conn.CreateDomain(DomTestXML, DomCreateDefault)
+	dom, err := env.conn.CreateDomain(xml.String(), DomCreateDefault)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,14 +238,21 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 }
 
 func TestConnectionDefineUndefineDomain(t *testing.T) {
-	conn := openTestConnection(t)
-	defer conn.Close()
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
 
-	if _, err := conn.DefineDomain(""); err == nil {
+	if _, err := env.conn.DefineDomain(""); err == nil {
 		t.Error("an error was not returned when defining a domain with empty XML descriptor")
 	}
 
-	dom, err := conn.DefineDomain(DomTestXML)
+	var xml bytes.Buffer
+	data := newTestDomainData()
+
+	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	dom, err := env.conn.DefineDomain(xml.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,12 +308,27 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 }
 
 func TestConnectionLookupDomain(t *testing.T) {
-	dom, conn := createTestDomain(t, DomCreateAutodestroy)
-	defer conn.Close()
-	defer dom.Free()
+	// TODO: if a domain is created with "<Domain>.Create" after
+	// "<Connection>.Define", it doesn't see to get an ID. as a workaround, we
+	// create it directly with "<Connection>.CreateDomain" because then it works.
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	data := newTestDomainData()
+
+	var xml bytes.Buffer
+
+	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	dom, err := env.conn.CreateDomain(xml.String(), DomCreateAutodestroy)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// ByID
-	if _, err := conn.LookupDomainByID(99); err == nil {
+	if _, err := env.conn.LookupDomainByID(99); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain ID")
 	}
 
@@ -325,7 +337,7 @@ func TestConnectionLookupDomain(t *testing.T) {
 		t.Error(err)
 	}
 
-	dom, err = conn.LookupDomainByID(expectedID)
+	dom, err = env.conn.LookupDomainByID(expectedID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -341,26 +353,26 @@ func TestConnectionLookupDomain(t *testing.T) {
 	}
 
 	// ByName
-	if _, err = conn.LookupDomainByName(utils.RandomString()); err == nil {
+	if _, err = env.conn.LookupDomainByName(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain name")
 	}
 
-	dom, err = conn.LookupDomainByName(DomTestName)
+	dom, err = env.conn.LookupDomainByName(data.Name)
 	if err != nil {
 		t.Error(err)
 	}
 	defer dom.Free()
 
-	if name := dom.Name(); name != DomTestName {
-		t.Errorf("looked up domain with unexpected name; got=%v, want=%v", name, DomTestName)
+	if name := dom.Name(); name != data.Name {
+		t.Errorf("looked up domain with unexpected name; got=%v, want=%v", name, data.Name)
 	}
 
 	// ByUUID
-	if _, err := conn.LookupDomainByUUID(utils.RandomString()); err == nil {
+	if _, err := env.conn.LookupDomainByUUID(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain UUID")
 	}
 
-	dom, err = conn.LookupDomainByUUID(DomTestUUID)
+	dom, err = env.conn.LookupDomainByUUID(data.UUID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -371,27 +383,14 @@ func TestConnectionLookupDomain(t *testing.T) {
 		t.Error(err)
 	}
 
-	if uuid != DomTestUUID {
-		t.Errorf("looked up domain with unexpected UUID; got=%v, want=%v", uuid, DomTestUUID)
+	if uuid != data.UUID {
+		t.Errorf("looked up domain with unexpected UUID; got=%v, want=%v", uuid, data.UUID)
 	}
 }
 
-func BenchmarkConnectionQEMU(b *testing.B) {
+func BenchmarkConnectionOpenRW(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		conn, err := Open(qemuSystemURI, ReadWrite, testLog)
-		if err != nil {
-			b.Error(err)
-		}
-
-		if _, err := conn.Close(); err != nil {
-			b.Error(err)
-		}
-	}
-}
-
-func BenchmarkConnectionTest(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		conn, err := Open(testDefaultURI, ReadWrite, testLog)
+		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
 		if err != nil {
 			b.Error(err)
 		}
@@ -403,14 +402,22 @@ func BenchmarkConnectionTest(b *testing.B) {
 }
 
 func BenchmarkConnectionCreateDomain(b *testing.B) {
-	conn, err := Open(qemuSystemURI, ReadWrite, testLog)
+	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
 	if err != nil {
 		b.Fatal(err)
 	}
 
+	var xml bytes.Buffer
+	data := newTestDomainData()
+
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+	xmlStr := xml.String()
+
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		dom, err := conn.CreateDomain(DomTestXML, DomCreateDefault)
+		dom, err := conn.CreateDomain(xmlStr, DomCreateDefault)
 		if err != nil {
 			b.Error(err)
 		}
@@ -431,14 +438,22 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 }
 
 func BenchmarkConnectionDefineDomain(b *testing.B) {
-	conn, err := Open(qemuSystemURI, ReadWrite, testLog)
+	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
 	if err != nil {
 		b.Fatal(err)
 	}
 
+	var xml bytes.Buffer
+	data := newTestDomainData()
+
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+	xmlStr := xml.String()
+
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		dom, err := conn.DefineDomain(DomTestXML)
+		dom, err := conn.DefineDomain(xmlStr)
 		if err != nil {
 			b.Error(err)
 		}
