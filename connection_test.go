@@ -68,7 +68,8 @@ func TestConnectionReadOnly(t *testing.T) {
 	defer conn.Close()
 
 	var xml bytes.Buffer
-	data := newTestDomainData()
+	data := newTestDomainData(t)
+	defer data.cleanUp()
 
 	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
@@ -204,7 +205,8 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestDomainData()
+	data := newTestDomainData(t)
+	defer data.cleanUp()
 
 	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
@@ -254,7 +256,8 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestDomainData()
+	data := newTestDomainData(t)
+	defer data.cleanUp()
 
 	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
@@ -322,7 +325,8 @@ func TestConnectionLookupDomain(t *testing.T) {
 	env := newTestEnvironment(t)
 	defer env.cleanUp()
 
-	data := newTestDomainData()
+	data := newTestDomainData(t)
+	defer data.cleanUp()
 
 	var xml bytes.Buffer
 
@@ -416,7 +420,7 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestDomainData()
+	data := newTestDomainData(b)
 
 	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
@@ -440,6 +444,10 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 	}
 	b.StopTimer()
 
+	if err = data.cleanUp(); err != nil {
+		b.Error(err)
+	}
+
 	if _, err := conn.Close(); err != nil {
 		b.Error(err)
 	}
@@ -452,7 +460,7 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestDomainData()
+	data := newTestDomainData(b)
 
 	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
@@ -475,6 +483,10 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 		}
 	}
 	b.StopTimer()
+
+	if err = data.cleanUp(); err != nil {
+		b.Error(err)
+	}
 
 	if _, err := conn.Close(); err != nil {
 		b.Error(err)

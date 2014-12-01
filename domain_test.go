@@ -80,7 +80,8 @@ func TestDomainID(t *testing.T) {
 	env := newTestEnvironment(t)
 	defer env.cleanUp()
 
-	data := newTestDomainData()
+	data := newTestDomainData(t)
+	defer data.cleanUp()
 
 	var xml bytes.Buffer
 

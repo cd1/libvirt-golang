@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"testing"
 	"text/template"
 
@@ -43,6 +47,13 @@ const testDomainXML = `
     <os>
         <type>{{.OSType}}</type>
     </os>
+    <devices>
+        <disk type="file">
+            <source file="{{.DiskPath}}" />
+            <driver name="qemu" type="{{.DiskFormat}}" />
+            <target dev="{{.DiskTarget}}" />
+        </disk>
+    </devices>
 </domain>`
 
 // Configuration variables. Feel free to change them.
@@ -59,6 +70,10 @@ var (
 
 // testDomainData contains the data of a domain used for testing.
 type testDomainData struct {
+	DiskFormat        string
+	DiskPath          string
+	DiskSize          int
+	DiskTarget        string
 	Name              string
 	MaxMemory         uint64
 	MaxVCPUs          int32
@@ -71,6 +86,7 @@ type testDomainData struct {
 	Type              string
 	UUID              string
 	VCPUs             int32
+	t                 testing.TB
 }
 
 // testEnvironment represents the environment used for a test function. It is
@@ -85,15 +101,14 @@ type testEnvironment struct {
 
 // newTestDomainData creates new data for a test domain. Some values are
 // generated randomly every time this function is called.
-func newTestDomainData() *testDomainData {
-	var maxMemory uint64 = 1048576 // 1 MiB
-	var maxVCPUs int32 = 4
-
-	return &testDomainData{
+func newTestDomainData(t testing.TB) *testDomainData {
+	data := &testDomainData{
+		DiskFormat:        "qcow2",
+		DiskSize:          rand.Intn(1048576) + 1, // <= 1 MiB
+		DiskTarget:        "vda",
 		Name:              fmt.Sprintf("domain-%v", utils.RandomString()),
-		MaxMemory:         maxMemory,
-		MaxVCPUs:          maxVCPUs,
-		Memory:            uint64(rand.Intn(int(maxMemory)) + 1),
+		MaxMemory:         1048576, // 1 MiB
+		MaxVCPUs:          4,
 		MetadataContent:   fmt.Sprintf("content-%v", utils.RandomString()),
 		MetadataKey:       fmt.Sprintf("key-%v", utils.RandomString()),
 		MetadataNamespace: fmt.Sprintf("ns-%v", utils.RandomString()),
@@ -101,8 +116,32 @@ func newTestDomainData() *testDomainData {
 		OSType:            "hvm",
 		Type:              "kvm",
 		UUID:              uuid.New(),
-		VCPUs:             int32(rand.Intn(int(maxVCPUs)) + 1),
+		t:                 t,
 	}
+
+	// TODO: this path can be looked up only once instead of for every domain data.
+	qemuImgPath, err := exec.LookPath("qemu-img")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diskPath := filepath.Join(os.TempDir(), fmt.Sprintf("%v-%v.%v", data.Name, data.DiskTarget, data.DiskFormat))
+
+	cmd := exec.Command(qemuImgPath, "create", diskPath, "-f", data.DiskFormat, strconv.Itoa(data.DiskSize))
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	data.DiskPath = diskPath
+	data.Memory = uint64(rand.Intn(int(data.MaxMemory)) + 1)
+	data.VCPUs = int32(rand.Intn(int(data.MaxVCPUs)) + 1)
+
+	return data
+}
+
+// cleanUp cleans up the domain data values, like temporary files.
+func (data *testDomainData) cleanUp() error {
+	return os.Remove(data.DiskPath)
 }
 
 // newTestEnvironment creates a new test environment. Basically it opens a
@@ -143,6 +182,12 @@ func (env *testEnvironment) cleanUp() {
 		}
 	}
 
+	if env.domData != nil {
+		if err := env.domData.cleanUp(); err != nil {
+			env.t.Error(err)
+		}
+	}
+
 	_, err := env.conn.Close()
 	if err != nil {
 		env.t.Error(err)
@@ -151,7 +196,7 @@ func (env *testEnvironment) cleanUp() {
 
 // withDomain defines a new test domain. The domain "dom" will not be started.
 func (env *testEnvironment) withDomain() *testEnvironment {
-	data := newTestDomainData()
+	data := newTestDomainData(env.t)
 
 	var xml bytes.Buffer
 
