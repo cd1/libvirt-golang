@@ -144,3 +144,51 @@ func (snap Snapshot) XML(flags DomainXMLFlag) (string, error) {
 
 	return xml, nil
 }
+
+// HasMetadata determines if the given snapshot is associated with libvirt
+// metadata that would prevent the deletion of the domain.
+func (snap Snapshot) HasMetadata() bool {
+	snap.log.Println("checking whether snapshot has metadata...")
+	cRet := C.virDomainSnapshotHasMetadata(snap.virSnapshot, 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return false
+	}
+
+	metadata := (ret == 1)
+
+	if metadata {
+		snap.log.Println("snapshot has metadata")
+	} else {
+		snap.log.Println("snapshot doesn't have metadata")
+	}
+
+	return metadata
+}
+
+// IsCurrent determines if the given snapshot is the domain's current snapshot.
+// See also "<Domain>.HasCurrentSnapshot".
+func (snap Snapshot) IsCurrent() bool {
+	snap.log.Println("checking whether snapshot is current...")
+	cRet := C.virDomainSnapshotIsCurrent(snap.virSnapshot, 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return false
+	}
+
+	current := (ret == 1)
+
+	if current {
+		snap.log.Println("snapshot is current")
+	} else {
+		snap.log.Println("snapshot isn't current")
+	}
+
+	return current
+}

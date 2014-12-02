@@ -729,6 +729,10 @@ func TestDomainCreateAndDeleteSnapshot(t *testing.T) {
 		t.Error("test domain should have a current snapshot")
 	}
 
+	if !snap.IsCurrent() {
+		t.Error("snapshot should be current (but it's not)")
+	}
+
 	if err := snap.Delete(SnapDeleteDefault); err != nil {
 		t.Error(err)
 	}

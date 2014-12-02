@@ -21,6 +21,10 @@ func TestSnapshotInit(t *testing.T) {
 			t.Error(err)
 		}
 	}
+
+	if !env.snap.HasMetadata() {
+		t.Error("snapshot should have metadata (but it does not)")
+	}
 }
 
 func TestSnapshotXML(t *testing.T) {
