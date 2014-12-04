@@ -738,6 +738,24 @@ func TestDomainCreateAndDeleteSnapshot(t *testing.T) {
 	}
 }
 
+func TestDomainLookupSnapshot(t *testing.T) {
+	env := newTestEnvironment(t).withSnapshot()
+	defer env.cleanUp()
+
+	if _, err := env.dom.LookupSnapshotByName(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when looking up an invalid snapshot name")
+	}
+
+	snap, err := env.dom.LookupSnapshotByName(env.snapData.Name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if newName := snap.Name(); newName != env.snapData.Name {
+		t.Errorf("wrong snapshot name; got=%v, want=%v", newName, env.snapData.Name)
+	}
+}
+
 func BenchmarkDomainSuspendResume(b *testing.B) {
 	env := newTestEnvironment(b).withDomain()
 	defer env.cleanUp()

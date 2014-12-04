@@ -1329,3 +1329,26 @@ func (dom Domain) CreateSnapshot(xml string, flags SnapshotCreateFlag) (Snapshot
 
 	return snap, nil
 }
+
+// LookupSnapshotByName tries to lookup a domain snapshot based on its name.
+func (dom Domain) LookupSnapshotByName(name string) (Snapshot, error) {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+
+	dom.log.Printf("looking up snapshot with name = %v...\n", name)
+	cSnap := C.virDomainSnapshotLookupByName(dom.virDomain, cName, 0)
+	if cSnap == nil {
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return Snapshot{}, err
+	}
+
+	snap := Snapshot{
+		log:         dom.log,
+		virSnapshot: cSnap,
+	}
+
+	dom.log.Println("snapshot found")
+
+	return snap, nil
+}
