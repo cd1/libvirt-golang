@@ -44,3 +44,16 @@ func TestSnapshotXML(t *testing.T) {
 		t.Error("empty snapshot XML")
 	}
 }
+
+func TestSnapshotRef(t *testing.T) {
+	env := newTestEnvironment(t).withSnapshot()
+	defer env.cleanUp()
+
+	if err := env.snap.Ref(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.snap.Free(); err != nil {
+		t.Error(err)
+	}
+}

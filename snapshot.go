@@ -192,3 +192,22 @@ func (snap Snapshot) IsCurrent() bool {
 
 	return current
 }
+
+// Ref increments the reference count on the snapshot. For each additional call
+// to this method, there shall be a corresponding call to "<Snapshot>.Free" to
+// release the reference count, once the caller no longer needs the reference to this object.
+func (snap Snapshot) Ref() error {
+	snap.log.Println("incrementing snapshot's reference count...")
+	cRet := C.virDomainSnapshotRef(snap.virSnapshot)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	snap.log.Println("reference count incremented")
+
+	return nil
+}
