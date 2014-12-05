@@ -1,6 +1,7 @@
 package libvirt
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -55,5 +56,40 @@ func TestSnapshotRef(t *testing.T) {
 
 	if err := env.snap.Free(); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestSnapshotListChildren(t *testing.T) {
+	env := newTestEnvironment(t).withSnapshot()
+	defer env.cleanUp()
+
+	var xml bytes.Buffer
+	data := newTestSnapshotData()
+
+	if err := testSnapshotTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	childSnap, err := env.dom.CreateSnapshot(xml.String(), SnapCreateDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer childSnap.Free()
+
+	snapshots, err := env.snap.ListChildren(SnapListDescendants)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, snap := range snapshots {
+		defer snap.Free()
+	}
+
+	if l := len(snapshots); l != 1 {
+		t.Errorf("unexpected snapshot children count; got=%v, want=1", l)
+	}
+
+	if childName := snapshots[0].Name(); childName != data.Name {
+		t.Errorf("unexpected snapshot child name; got=%v, want=%v\n", childName, data.Name)
 	}
 }

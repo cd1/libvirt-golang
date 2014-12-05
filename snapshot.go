@@ -5,6 +5,7 @@ package libvirt
 import "C"
 import (
 	"log"
+	"reflect"
 	"unicode/utf8"
 	"unsafe"
 )
@@ -210,4 +211,49 @@ func (snap Snapshot) Ref() error {
 	snap.log.Println("reference count incremented")
 
 	return nil
+}
+
+// ListChildren collects the list of domain snapshots that are children of the
+// given snapshot, and allocate an array to store those objects.
+// By default, this command covers only direct children; it is also possible to
+// expand things to cover all descendants, when "flags" includes
+// SnapshotListDescendants. Also, some filters are provided in groups, where
+// each group contains bits that describe mutually exclusive attributes of a
+// snapshot, and where all bits within a group describe all possible snapshots.
+// Some hypervisors might reject explicit bits from a group where the hypervisor
+// cannot make a distinction. For a group supported by a given hypervisor, the
+// behavior when no bits of a group are set is identical to the behavior when
+// all bits in that group are set. When setting bits from more than one group,
+// it is possible to select an impossible combination, in that case a hypervisor
+// may return either 0 or an error.
+func (snap Snapshot) ListChildren(flags SnapshotListFlag) ([]Snapshot, error) {
+	var cSnaps []C.virDomainSnapshotPtr
+	snapsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cSnaps))
+
+	snap.log.Printf("reading snapshot children (flags = %v)...\n", flags)
+	cRet := C.virDomainSnapshotListAllChildren(snap.virSnapshot, (**C.virDomainSnapshotPtr)(unsafe.Pointer(&snapsSH.Data)), C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(snapsSH.Data))
+
+	snapsSH.Cap = int(ret)
+	snapsSH.Len = int(ret)
+
+	snaps := make([]Snapshot, ret)
+
+	for i := range snaps {
+		snaps[i] = Snapshot{
+			log:         snap.log,
+			virSnapshot: cSnaps[i],
+		}
+	}
+
+	snap.log.Printf("snapshots count: %v\n", ret)
+
+	return snaps, nil
 }
