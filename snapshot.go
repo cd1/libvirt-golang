@@ -57,6 +57,17 @@ const (
 	SnapDeleteChildrenOnly SnapshotDeleteFlag = C.VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY
 )
 
+// SnapshotRevertFlag defines how a snapshot revert operation should be performed.
+type SnapshotRevertFlag uint32
+
+// Possible values for SnapshotRevertFlag.
+const (
+	SnapRevertDefault SnapshotRevertFlag = 0
+	SnapRevertRunning SnapshotRevertFlag = C.VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING
+	SnapRevertPaused  SnapshotRevertFlag = C.VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED
+	SnapRevertForce   SnapshotRevertFlag = C.VIR_DOMAIN_SNAPSHOT_REVERT_FORCE
+)
+
 // Snapshot holds a libvirt domain snapshot. There are no exported fields.
 type Snapshot struct {
 	log         *log.Logger
@@ -256,4 +267,48 @@ func (snap Snapshot) ListChildren(flags SnapshotListFlag) ([]Snapshot, error) {
 	snap.log.Printf("snapshots count: %v\n", ret)
 
 	return snaps, nil
+}
+
+// Revert reverts the domain to a given snapshot.
+// Normally, the domain will revert to the same state the domain was in while
+// the snapshot was taken (whether inactive, running, or paused), except that
+// disk snapshots default to reverting to inactive state. Including
+// SnapRevertRunning in "flags" overrides the snapshot state to guarantee a
+// running domain after the revert; or including SnapRevertPaused in "flags"
+// guarantees a paused domain after the revert. These two flags are mutually
+// exclusive. While a persistent domain does not need either flag, it is not
+// possible to revert a transient domain into an inactive state, so transient
+// domains require the use of one of these two flags.
+// Reverting to any snapshot discards all configuration changes made since the
+// last snapshot. Additionally, reverting to a snapshot from a running domain is
+// a form of data loss, since it discards whatever is in the guest's RAM at the
+// time. Since the very nature of keeping snapshots implies the intent to roll
+// back state, no additional confirmation is normally required for these
+// lossy effects.
+// However, there are two particular situations where reverting will be refused
+// by default, and where "flags" must include SnapRevertForce to acknowledge the
+// risks. 1) Any attempt to revert to a snapshot that lacks the metadata to
+// perform ABI compatibility checks (generally the case for snapshots that lack
+// a full <domain> when listed by "<Snapshot>.XML()", such as those created
+// prior to libvirt 0.9.5). 2) Any attempt to revert a running domain to an
+// active state that requires starting a new hypervisor instance rather than
+// reusing the existing hypervisor (since this would terminate all connections
+// to the domain, such as such as VNC or Spice graphics) - this condition arises
+// from active snapshots that are provably ABI incomaptible, as well as from
+// inactive snapshots with a "flags" request to start the domain after
+// the revert.
+func (snap Snapshot) Revert(flags SnapshotRevertFlag) error {
+	snap.log.Printf("reverting to snapshot (flags = %v)...\n", flags)
+	cRet := C.virDomainRevertToSnapshot(snap.virSnapshot, C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	snap.log.Println("domain reverted")
+
+	return nil
 }

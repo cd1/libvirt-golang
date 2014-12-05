@@ -93,3 +93,16 @@ func TestSnapshotListChildren(t *testing.T) {
 		t.Errorf("unexpected snapshot child name; got=%v, want=%v\n", childName, data.Name)
 	}
 }
+
+func TestSnapshotRevert(t *testing.T) {
+	env := newTestEnvironment(t).withSnapshot()
+	defer env.cleanUp()
+
+	if err := env.snap.Revert(SnapshotRevertFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid flag")
+	}
+
+	if err := env.snap.Revert(SnapRevertDefault); err != nil {
+		t.Fatal(err)
+	}
+}
