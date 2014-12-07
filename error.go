@@ -103,6 +103,7 @@ const (
 	ErrAccessDenied          ErrorCode = C.VIR_ERR_ACCESS_DENIED
 	ErrDBusService           ErrorCode = C.VIR_ERR_DBUS_SERVICE
 	ErrStorageVolExist       ErrorCode = C.VIR_ERR_STORAGE_VOL_EXIST
+	ErrCPUIncompatible       ErrorCode = C.VIR_ERR_CPU_INCOMPATIBLE
 )
 
 // ErrorDomain describes what part of the library raised the error.
@@ -168,6 +169,9 @@ const (
 	ErrDomAccess         ErrorDomain = C.VIR_FROM_ACCESS
 	ErrDomSystemd        ErrorDomain = C.VIR_FROM_SYSTEMD
 	ErrDomBhyve          ErrorDomain = C.VIR_FROM_BHYVE
+	ErrDomCrypto         ErrorDomain = C.VIR_FROM_CRYPTO
+	ErrDomFirewall       ErrorDomain = C.VIR_FROM_FIREWALL
+	ErrDomPolkit         ErrorDomain = C.VIR_FROM_POLKIT
 )
 
 // ErrorLevel specifies how consequent is the error.

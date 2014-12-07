@@ -271,7 +271,7 @@ func TestDomainCoreDump(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := env.dom.CoreDump(".", DomDumpLive); err == nil {
+	if err := env.dom.CoreDump(".", DomDumpFormatRaw, DomDumpLive); err == nil {
 		t.Error("a core dump file should not be generated into a directory path")
 	}
 
@@ -281,11 +281,15 @@ func TestDomainCoreDump(t *testing.T) {
 	}
 	defer os.Remove(dumpFile.Name())
 
-	if err := env.dom.CoreDump(dumpFile.Name(), DomainDumpFlag(99)); err == nil {
+	if err := env.dom.CoreDump(dumpFile.Name(), DomainDumpFormat(99), DomDumpLive); err == nil {
+		t.Error("an error was not returned when using an invalid core dump format")
+	}
+
+	if err := env.dom.CoreDump(dumpFile.Name(), DomDumpFormatRaw, DomainDumpFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid core dump flag")
 	}
 
-	if err := env.dom.CoreDump(dumpFile.Name(), DomDumpLive); err != nil {
+	if err := env.dom.CoreDump(dumpFile.Name(), DomDumpFormatRaw, DomDumpLive); err != nil {
 		t.Fatal(err)
 	}
 

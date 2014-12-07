@@ -96,6 +96,7 @@ const (
 	DomUndefineDefault           DomainUndefineFlag = 0
 	DomUndefineManagedSave       DomainUndefineFlag = C.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
 	DomUndefineSnapshotsMetadata DomainUndefineFlag = C.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+	DomUndefineNVRAM             DomainUndefineFlag = C.VIR_DOMAIN_UNDEFINE_NVRAM
 )
 
 // DomainRebootFlag defines how a domain should be rebooted.
@@ -108,6 +109,7 @@ const (
 	DomRebootGuestAgent   DomainRebootFlag = C.VIR_DOMAIN_REBOOT_GUEST_AGENT
 	DomRebootInitctl      DomainRebootFlag = C.VIR_DOMAIN_REBOOT_INITCTL
 	DomRebootSignal       DomainRebootFlag = C.VIR_DOMAIN_REBOOT_SIGNAL
+	DomRebootParavirt     DomainRebootFlag = C.VIR_DOMAIN_REBOOT_PARAVIRT
 )
 
 // DomainState represents the state of a domain.
@@ -228,6 +230,17 @@ const (
 	DomDumpBypassCache DomainDumpFlag = C.VIR_DUMP_BYPASS_CACHE
 	DomDumpReset       DomainDumpFlag = C.VIR_DUMP_RESET
 	DomDumpMemoryOnly  DomainDumpFlag = C.VIR_DUMP_MEMORY_ONLY
+)
+
+// DomainDumpFormat defines the format of a domain core dump.
+type DomainDumpFormat uint32
+
+// Possible values for DomainDumpFormat.
+const (
+	DomDumpFormatRaw         DomainDumpFormat = C.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
+	DomDumpFormatKdumpZlib   DomainDumpFormat = C.VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB
+	DomDumpFormatKdumpLzo    DomainDumpFormat = C.VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO
+	DomDumpFormatKdumpSnappy DomainDumpFormat = C.VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY
 )
 
 // DomainVCPUsFlag defines how a domain VCPUs count should be handled.
@@ -839,14 +852,25 @@ func (dom Domain) Resume() error {
 
 // CoreDump dumps the core of a domain on a given file for analysis. Note that
 // for remote Xen Daemon the file path will be interpreted in the remote host.
-// Hypervisors may require the user to manually ensure proper permissions on
-// the file named by "to".
-func (dom Domain) CoreDump(file string, flags DomainDumpFlag) error {
+// Hypervisors may require the user to manually ensure proper permissions on the
+// file named by "to".
+// "dumpformat" controls which format the dump will have. Not all hypervisors
+// are able to support all formats.
+// If "flags" includes DomDumpCrash, then leave the guest shut off with a
+// crashed state after the dump completes. If "flags" includes DomDumpLive, then
+// make the core dump while continuing to allow the guest to run; otherwise, the
+// guest is suspended during the dump. DomDumpReset flag forces reset of the
+// guest after dump. The above three flags are mutually exclusive.
+// Additionally, if "flags" includes DomDumpBypassCache, then libvirt will
+// attempt to bypass the file system cache while creating the file, or fail if
+// it cannot do so for the given system; this can allow less pressure on file
+// system cache, but also risks slowing saves to NFS.
+func (dom Domain) CoreDump(file string, format DomainDumpFormat, flags DomainDumpFlag) error {
 	cFile := C.CString(file)
 	defer C.free(unsafe.Pointer(cFile))
 
-	dom.log.Printf("dumping domain's core to file %v (flags = %v)...", file, flags)
-	cRet := C.virDomainCoreDump(dom.virDomain, cFile, C.uint(flags))
+	dom.log.Printf("dumping domain's core to file %v (format = %v, flags = %v)...", file, format, flags)
+	cRet := C.virDomainCoreDumpWithFormat(dom.virDomain, cFile, C.uint(format), C.uint(flags))
 	ret := int32(cRet)
 
 	if ret == -1 {
