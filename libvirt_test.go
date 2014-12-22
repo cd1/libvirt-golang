@@ -56,6 +56,10 @@ const testDomainXML = `
     </devices>
 </domain>`
 
+const testSecretXML = `
+<secret />
+`
+
 const testSnapshotXML = `
 <domainsnapshot>
     <name>{{.Name}}</name>

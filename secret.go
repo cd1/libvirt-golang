@@ -41,3 +41,21 @@ func (sec Secret) Free() error {
 
 	return nil
 }
+
+// Undefine deletes the specified secret. This does not free the associated
+// "Secret" object.
+func (sec Secret) Undefine() error {
+	sec.log.Println("undefining secret...")
+	cRet := C.virSecretUndefine(sec.virSecret)
+	ret := int(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		sec.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	sec.log.Println("secret undefined")
+
+	return nil
+}

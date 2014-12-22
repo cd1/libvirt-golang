@@ -636,3 +636,33 @@ func (conn Connection) ListSecrets(flags SecretListFlag) ([]Secret, error) {
 
 	return secrets, nil
 }
+
+// DefineSecret creates a new secret with an automatically chosen UUID, and
+// initializes its attributes from "xml".
+// If "xml" specifies a UUID, locates the specified secret and replaces all
+// attributes of the secret specified by UUID by attributes specified in "xml"
+// (any attributes not specified in "xml" are discarded).
+// "Free" should be used to free the resources after the secret object is no
+// longer needed.
+func (conn Connection) DefineSecret(xml string) (Secret, error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	conn.log.Println("defining secret...")
+	cSec := C.virSecretDefineXML(conn.virConnect, cXML, 0)
+
+	if cSec == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return Secret{}, err
+	}
+
+	conn.log.Println("secret defined")
+
+	sec := Secret{
+		log:       conn.log,
+		virSecret: cSec,
+	}
+
+	return sec, nil
+}

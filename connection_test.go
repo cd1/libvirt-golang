@@ -420,6 +420,28 @@ func TestConnectionListSecrets(t *testing.T) {
 	}
 }
 
+func TestConnectionDefineUndefineSecret(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.DefineSecret(""); err == nil {
+		t.Error("an error was not returned when using an empty XML descriptor")
+	}
+
+	sec, err := env.conn.DefineSecret(testSecretXML)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = sec.Undefine(); err != nil {
+		t.Error(err)
+	}
+
+	if err = sec.Free(); err != nil {
+		t.Error(err)
+	}
+}
+
 func BenchmarkConnectionOpenRW(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
@@ -507,6 +529,34 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 	if err = data.cleanUp(); err != nil {
 		b.Error(err)
 	}
+
+	if _, err := conn.Close(); err != nil {
+		b.Error(err)
+	}
+}
+
+func BenchmarkConnectionDefineSecret(b *testing.B) {
+	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		sec, err := conn.DefineSecret(testSecretXML)
+		if err != nil {
+			b.Error(err)
+		}
+
+		if err = sec.Undefine(); err != nil {
+			b.Error(err)
+		}
+
+		if err = sec.Free(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
 
 	if _, err := conn.Close(); err != nil {
 		b.Error(err)
