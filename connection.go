@@ -592,3 +592,47 @@ func (conn Connection) RestoreDomain(from string, xml string, flags DomainSaveFl
 
 	return nil
 }
+
+// ListSecrets collects the list of secrets, and allocate an array to store those objects.
+// Normally, all secrets are returned; however, "flags" can be used to filter
+// the results for a smaller list of targeted secrets. The valid flags are
+// divided into groups, where each group contains bits that describe mutually
+// exclusive attributes of a secret, and where all bits within a group describe
+// all possible secrets.
+// The first group of "flags" is used to filter secrets by its storage location.
+// Flag "SecListEphemeral" selects secrets that are kept only in memory. Flag
+// "SecListNoEphemeral" selects secrets that are kept in persistent storage.
+// The second group of "flags" is used to filter secrets by privacy. Flag
+// "SecListPrivate" selects secrets that are never revealed to any caller of
+// libvirt nor to any other node. Flag SecListNoPrivate selects
+// non-private secrets.
+func (conn Connection) ListSecrets(flags SecretListFlag) ([]Secret, error) {
+	var cSecrets []C.virSecretPtr
+	secretsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cSecrets))
+
+	conn.log.Printf("reading secrets (flags = %v)...\n", flags)
+	cRet := C.virConnectListAllSecrets(conn.virConnect, (**C.virSecretPtr)(unsafe.Pointer(&secretsSH.Data)), C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(secretsSH.Data))
+
+	secretsSH.Cap = int(ret)
+	secretsSH.Len = int(ret)
+
+	secrets := make([]Secret, ret)
+	for i := range secrets {
+		secrets[i] = Secret{
+			log:       conn.log,
+			virSecret: cSecrets[i],
+		}
+	}
+
+	conn.log.Printf("secrets count: %v\n", ret)
+
+	return secrets, nil
+}

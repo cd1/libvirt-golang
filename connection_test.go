@@ -400,6 +400,26 @@ func TestConnectionLookupDomain(t *testing.T) {
 	}
 }
 
+func TestConnectionListSecrets(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.ListSecrets(SecretListFlag(99)); err == nil {
+		t.Error("an error was not returned when using an invalid flag")
+	}
+
+	secrets, err := env.conn.ListSecrets(SecListAll)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, s := range secrets {
+		if err = s.Free(); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkConnectionOpenRW(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
