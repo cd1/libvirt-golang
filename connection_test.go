@@ -401,7 +401,7 @@ func TestConnectionLookupDomain(t *testing.T) {
 }
 
 func TestConnectionListSecrets(t *testing.T) {
-	env := newTestEnvironment(t)
+	env := newTestEnvironment(t).withSecret()
 	defer env.cleanUp()
 
 	if _, err := env.conn.ListSecrets(SecretListFlag(99)); err == nil {
@@ -428,7 +428,15 @@ func TestConnectionDefineUndefineSecret(t *testing.T) {
 		t.Error("an error was not returned when using an empty XML descriptor")
 	}
 
-	sec, err := env.conn.DefineSecret(testSecretXML)
+	var xml bytes.Buffer
+
+	data := newTestSecretData()
+
+	if err := testSecretTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	sec, err := env.conn.DefineSecret(xml.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,9 +549,17 @@ func BenchmarkConnectionDefineSecret(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	var xml bytes.Buffer
+	data := newTestSecretData()
+
+	if err = testSecretTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+	xmlStr := xml.String()
+
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		sec, err := conn.DefineSecret(testSecretXML)
+		sec, err := conn.DefineSecret(xmlStr)
 		if err != nil {
 			b.Error(err)
 		}

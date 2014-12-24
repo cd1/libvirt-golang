@@ -57,7 +57,12 @@ const testDomainXML = `
 </domain>`
 
 const testSecretXML = `
-<secret />
+<secret>
+    <uuid>{{.UUID}}</uuid>
+    <usage type="{{.UsageTypeString}}">
+        <name>{{.UsageName}}</name>
+    </usage>
+</secret>
 `
 
 const testSnapshotXML = `
@@ -75,6 +80,7 @@ var (
 var (
 	testDomainMetadataTmpl = template.Must(template.New("test-domain-metadata").Parse(testDomainMetadataXML))
 	testDomainTmpl         = template.Must(template.New("test-domain").Parse(testDomainXML))
+	testSecretTmpl         = template.Must(template.New("test-secret").Parse(testSecretXML))
 	testSnapshotTmpl       = template.Must(template.New("test-snapshot").Parse(testSnapshotXML))
 )
 
@@ -99,6 +105,14 @@ type testDomainData struct {
 	t                 testing.TB
 }
 
+// testSecretData contains the data of a secret used for testing.
+type testSecretData struct {
+	UUID            string
+	UsageName       string
+	UsageType       SecretUsageType
+	UsageTypeString string
+}
+
 // testSnapshotData contains the data of a snapshot used for testing.
 type testSnapshotData struct {
 	Name string
@@ -111,6 +125,8 @@ type testEnvironment struct {
 	conn     *Connection
 	dom      *Domain
 	domData  *testDomainData
+	sec      *Secret
+	secData  *testSecretData
 	snap     *Snapshot
 	snapData *testSnapshotData
 	t        testing.TB
@@ -159,6 +175,17 @@ func newTestDomainData(t testing.TB) *testDomainData {
 // cleanUp cleans up the domain data values, like temporary files.
 func (data *testDomainData) cleanUp() error {
 	return os.Remove(data.DiskPath)
+}
+
+// newTestSecretData creates new data for a test secret. The values are
+// generated randomly every time this function is called.
+func newTestSecretData() *testSecretData {
+	return &testSecretData{
+		UsageName:       fmt.Sprintf("name-%v", utils.RandomString()),
+		UsageType:       SecUsageTypeCeph,
+		UsageTypeString: "ceph",
+		UUID:            uuid.New(),
+	}
 }
 
 // newTestSnapshotData creates new data for a test snapshot. The values are
@@ -228,6 +255,16 @@ func (env *testEnvironment) cleanUp() {
 		}
 	}
 
+	if env.sec != nil {
+		if err := env.sec.Undefine(); err != nil {
+			env.t.Error(err)
+		}
+
+		if err := env.sec.Free(); err != nil {
+			env.t.Error(err)
+		}
+	}
+
 	_, err := env.conn.Close()
 	if err != nil {
 		env.t.Error(err)
@@ -275,6 +312,27 @@ func (env *testEnvironment) withSnapshot() *testEnvironment {
 
 	env.snapData = data
 	env.snap = &snap
+
+	return env
+}
+
+// withSecret defines a new test secret.
+func (env *testEnvironment) withSecret() *testEnvironment {
+	data := newTestSecretData()
+
+	var xml bytes.Buffer
+
+	if err := testSecretTmpl.Execute(&xml, data); err != nil {
+		env.t.Fatal(err)
+	}
+
+	sec, err := env.conn.DefineSecret(xml.String())
+	if err != nil {
+		env.t.Fatal(err)
+	}
+
+	env.secData = data
+	env.sec = &sec
 
 	return env
 }
