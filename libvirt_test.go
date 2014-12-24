@@ -2,6 +2,7 @@ package libvirt
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -111,6 +112,7 @@ type testSecretData struct {
 	UsageName       string
 	UsageType       SecretUsageType
 	UsageTypeString string
+	Value           string
 }
 
 // testSnapshotData contains the data of a snapshot used for testing.
@@ -180,11 +182,18 @@ func (data *testDomainData) cleanUp() error {
 // newTestSecretData creates new data for a test secret. The values are
 // generated randomly every time this function is called.
 func newTestSecretData() *testSecretData {
+	var value bytes.Buffer
+
+	encoder := base64.NewEncoder(base64.StdEncoding, &value)
+	encoder.Write([]byte(utils.RandomString()))
+	encoder.Close()
+
 	return &testSecretData{
 		UsageName:       fmt.Sprintf("name-%v", utils.RandomString()),
 		UsageType:       SecUsageTypeCeph,
 		UsageTypeString: "ceph",
 		UUID:            uuid.New(),
+		Value:           value.String(),
 	}
 }
 

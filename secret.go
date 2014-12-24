@@ -156,3 +156,43 @@ func (sec Secret) UsageType() (SecretUsageType, error) {
 
 	return usageType, nil
 }
+
+// SetValue sets the value of a secret.
+func (sec Secret) SetValue(value string) error {
+	cSize := C.size_t(len(value))
+	cValue := (*C.uchar)(unsafe.Pointer(C.CString(value)))
+
+	sec.log.Printf("setting secret value (%v)...\n", value)
+	cRet := C.virSecretSetValue(sec.virSecret, cValue, cSize, 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		sec.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	sec.log.Println("value set")
+
+	return nil
+}
+
+// Value fetches the value of a secret.
+func (sec Secret) Value() (string, error) {
+	var cSize C.size_t
+
+	sec.log.Println("reading secret value...")
+	cValue := C.virSecretGetValue(sec.virSecret, &cSize, 0)
+
+	if cValue == nil {
+		err := LastError()
+		sec.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
+	defer C.free(unsafe.Pointer(cValue))
+
+	value := string(C.GoBytes(unsafe.Pointer(cValue), C.int(cSize)))
+	sec.log.Printf("value: %v\n", value)
+
+	return value, nil
+}

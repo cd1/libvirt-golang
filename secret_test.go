@@ -44,3 +44,21 @@ func TestSecretInit(t *testing.T) {
 		t.Errorf("wrong test secret usage type; got=%v, want=%v", usageType, env.secData.UsageType)
 	}
 }
+
+func TestSecretValue(t *testing.T) {
+	env := newTestEnvironment(t).withSecret()
+	defer env.cleanUp()
+
+	if err := env.sec.SetValue(env.secData.Value); err != nil {
+		t.Fatal(err)
+	}
+
+	value, err := env.sec.Value()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if value != env.secData.Value {
+		t.Errorf("wrong secret value; got=%v, want=%v", value, env.secData.Value)
+	}
+}
