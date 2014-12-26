@@ -450,6 +450,60 @@ func TestConnectionDefineUndefineSecret(t *testing.T) {
 	}
 }
 
+func TestConnectionLookupSecret(t *testing.T) {
+	env := newTestEnvironment(t).withSecret()
+	defer env.cleanUp()
+
+	if _, err := env.conn.LookupSecretByUUID(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when looking up a non-existing secret UUID")
+	}
+
+	if _, err := env.conn.LookupSecretByUsage(SecretUsageType(99), ""); err == nil {
+		t.Error("an error was not returned when looking up a secret with an invalid usage flag")
+	}
+
+	if _, err := env.conn.LookupSecretByUsage(SecUsageTypeNone, ""); err == nil {
+		t.Error("an error was not returned when looking up a secret with an empty ID")
+	}
+
+	sec, err := env.conn.LookupSecretByUUID(env.secData.UUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	uuid, err := sec.UUID()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if uuid != env.secData.UUID {
+		t.Errorf("wrong secret UUID; got=%v, want=%v", uuid, env.secData.UUID)
+	}
+
+	sec, err = env.conn.LookupSecretByUsage(env.secData.UsageType, env.secData.UsageName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	usageType, err := sec.UsageType()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if usageType != env.secData.UsageType {
+		t.Errorf("wrong secret usage type; got=%v, want=%v", usageType, env.secData.UsageType)
+	}
+
+	usageID, err := sec.UsageID()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if usageID != env.secData.UsageName {
+		t.Errorf("wrong secret usage ID; got=%v, want=%v", usageID, env.secData.UsageName)
+	}
+}
+
 func BenchmarkConnectionOpenRW(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)

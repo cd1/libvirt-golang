@@ -666,3 +666,51 @@ func (conn Connection) DefineSecret(xml string) (Secret, error) {
 
 	return sec, nil
 }
+
+// LookupSecretByUUID tries to lookup a secret on the given hypervisor based on
+// its UUID. Uses the printable string value to describe the UUID.
+// "Free" should be used to free the resources after the secret object is no
+// longer needed.
+func (conn Connection) LookupSecretByUUID(uuid string) (Secret, error) {
+	cUUID := C.CString(uuid)
+	defer C.free(unsafe.Pointer(cUUID))
+
+	cSecret := C.virSecretLookupByUUIDString(conn.virConnect, cUUID)
+
+	if cSecret == nil {
+		err := LastError()
+		return Secret{}, err
+	}
+
+	secret := Secret{
+		log:       conn.log,
+		virSecret: cSecret,
+	}
+
+	return secret, nil
+}
+
+// LookupSecretByUsage tries to lookup a secret on the given hypervisor based on
+// its usage. The usageID is unique within the set of secrets sharing the same
+// usageType value.
+// "Free" should be used to free the resources after the secret object is no
+// longer needed.
+func (conn Connection) LookupSecretByUsage(usageType SecretUsageType, usageID string) (Secret, error) {
+	cUsageType := C.int(usageType)
+	cUsageID := C.CString(usageID)
+	defer C.free(unsafe.Pointer(cUsageID))
+
+	cSecret := C.virSecretLookupByUsage(conn.virConnect, cUsageType, cUsageID)
+
+	if cSecret == nil {
+		err := LastError()
+		return Secret{}, err
+	}
+
+	secret := Secret{
+		log:       conn.log,
+		virSecret: cSecret,
+	}
+
+	return secret, nil
+}
