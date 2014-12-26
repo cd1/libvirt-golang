@@ -196,3 +196,27 @@ func (sec Secret) Value() (string, error) {
 
 	return value, nil
 }
+
+// Ref increments the reference count on the secret. For each additional call to
+// this method, there shall be a corresponding call to "<Secret>.Free" to
+// release the reference count, once the caller no longer needs the reference to
+// this object.
+// This method is typically useful for applications where multiple threads are
+// using a connection, and it is required that the connection remain open until
+// all threads have finished using it. ie, each new thread using a secret would
+// increment the reference count.
+func (sec Secret) Ref() error {
+	sec.log.Println("incrementing secret's reference count...")
+	cRet := C.virSecretRef(sec.virSecret)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		sec.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	sec.log.Println("reference count incremented")
+
+	return nil
+}

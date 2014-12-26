@@ -62,3 +62,16 @@ func TestSecretValue(t *testing.T) {
 		t.Errorf("wrong secret value; got=%v, want=%v", value, env.secData.Value)
 	}
 }
+
+func TestSecretRef(t *testing.T) {
+	env := newTestEnvironment(t).withSecret()
+	defer env.cleanUp()
+
+	if err := env.sec.Ref(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.sec.Free(); err != nil {
+		t.Error(err)
+	}
+}
