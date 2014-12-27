@@ -723,3 +723,83 @@ func (conn Connection) LookupSecretByUsage(usageType SecretUsageType, usageID st
 
 	return secret, nil
 }
+
+// FindStoragePoolSources talks to a storage backend and attempts to
+// auto-discover the set of available storage pool sources. e.g. For iSCSI this
+// would be a set of iSCSI targets. For NFS this would be a list of exported
+// paths. The "source" (optional for some storage pool types, e.g. local ones)
+// is an instance of the storage pool's source element specifying where to look
+// for the pools.
+// "source" is not required for some types (e.g., those querying local storage
+// resources only)
+func (conn Connection) FindStoragePoolSources(typ string, source string) (string, error) {
+	cType := C.CString(typ)
+	defer C.free(unsafe.Pointer(cType))
+
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	conn.log.Printf("finding storage pool sources (type = %v)...\n", typ)
+	cSources := C.virConnectFindStoragePoolSources(conn.virConnect, cType, cSource, 0)
+
+	if cSources == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
+	defer C.free(unsafe.Pointer(cSources))
+
+	sources := C.GoString(cSources)
+	conn.log.Printf("sources XML length: %v runes\n", utf8.RuneCountInString(sources))
+
+	return sources, nil
+}
+
+// ListStoragePools collects the list of storage pools, and allocates an array
+// to store those objects.
+// Normally, all storage pools are returned; however, "flags" can be used to
+// filter the results for a smaller list of targeted pools. The valid flags are
+// divided into groups, where each group contains bits that describe mutually
+// exclusive attributes of a pool, and where all bits within a group describe
+// all possible pools.
+// The first group of "flags" is PoolListActive (online) and PoolListInactive
+// (offline) to filter the pools by state.
+// The second group of "flags" is PoolListPersistent (defined) and
+// PoolListTransient (running but not defined), to filter the pools by whether
+// they have persistent config or not.
+// The third group of "flags" is PoolListAutostart and PoolListNoAutostart, to
+// filter the pools by whether they are marked as autostart or not.
+// The last group of "flags" is provided to filter the pools by the types, the
+// flags include: PoolListDir, PoolListFS, PoolListNetFS, PoolListLogical,
+// PoolListDisk, PoolListISCSI, PoolListSCSI, PoolListMPath, PoolListRBD,
+// PoolListSheepdog.
+func (conn Connection) ListStoragePools(flags StoragePoolListFlag) ([]StoragePool, error) {
+	var cStoragePools []C.virStoragePoolPtr
+	cStoragePoolsSH := (*reflect.SliceHeader)(unsafe.Pointer(&cStoragePools))
+
+	conn.log.Printf("reading storage pools (flags = %v)...\n", flags)
+	cRet := C.virConnectListAllStoragePools(conn.virConnect, (**C.virStoragePoolPtr)(unsafe.Pointer(&cStoragePoolsSH.Data)), C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(cStoragePoolsSH.Data))
+
+	cStoragePoolsSH.Cap = int(ret)
+	cStoragePoolsSH.Len = int(ret)
+
+	storagePools := make([]StoragePool, ret)
+	for i, cPool := range cStoragePools {
+		storagePools[i] = StoragePool{
+			log:            conn.log,
+			virStoragePool: cPool,
+		}
+	}
+
+	conn.log.Printf("pools count: %v\n", ret)
+
+	return storagePools, nil
+}

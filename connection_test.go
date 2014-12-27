@@ -558,6 +558,37 @@ func TestConnectionLookupSecret(t *testing.T) {
 	}
 }
 
+func TestConnectionFindStoragePoolSources(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.FindStoragePoolSources("", ""); err == nil {
+		t.Error("an error was not returned when using an empty storage pool type")
+	}
+
+	// TODO: how to test this function on success?
+}
+
+func TestConnectionListStoragePools(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.ListStoragePools(StoragePoolListFlag(^uint32(0))); err == nil {
+		t.Error("an error was not returned when using an invalid flag")
+	}
+
+	storagePools, err := env.conn.ListStoragePools(PoolListAll)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, pool := range storagePools {
+		if err = pool.Free(); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
