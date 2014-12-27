@@ -803,3 +803,30 @@ func (conn Connection) ListStoragePools(flags StoragePoolListFlag) ([]StoragePoo
 
 	return storagePools, nil
 }
+
+// DefineStoragePool defines a new inactive storage pool based on its XML
+// description. The pool is persistent, until explicitly undefined.
+// "Free" should be used to free the resources after the storage pool object is
+// no longer needed.
+func (conn Connection) DefineStoragePool(xml string) (StoragePool, error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	conn.log.Println("defining storage pool...")
+	cPool := C.virStoragePoolDefineXML(conn.virConnect, cXML, 0)
+
+	if cPool == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return StoragePool{}, err
+	}
+
+	pool := StoragePool{
+		log:            conn.log,
+		virStoragePool: cPool,
+	}
+
+	conn.log.Println("pool defined")
+
+	return pool, nil
+}

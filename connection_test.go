@@ -97,6 +97,17 @@ func TestConnectionReadOnly(t *testing.T) {
 	if _, err = conn.DefineSecret(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining secrets")
 	}
+
+	xml.Reset()
+	poolData := newTestStoragePoolData()
+
+	if err = testStoragePoolTmpl.Execute(&xml, poolData); err != nil {
+		t.Error(err)
+	}
+
+	if _, err = conn.DefineStoragePool(xml.String()); err == nil {
+		t.Error("a readonly libvirt connection should not allow defining storage pools")
+	}
 }
 
 func TestConnectionInit(t *testing.T) {
@@ -589,6 +600,32 @@ func TestConnectionListStoragePools(t *testing.T) {
 	}
 }
 
+func TestConnectionDefineUndefineStoragePool(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.DefineStoragePool(""); err == nil {
+		t.Error("an error was not returned when defining a storage pool with an empty XML descriptor")
+	}
+
+	var xml bytes.Buffer
+	data := newTestStoragePoolData()
+
+	if err := testStoragePoolTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	pool, err := env.conn.DefineStoragePool(xml.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Free()
+
+	if err = pool.Undefine(); err != nil {
+		t.Error(err)
+	}
+}
+
 func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
@@ -684,6 +721,33 @@ func BenchmarkConnectionDefineSecret(b *testing.B) {
 		defer sec.Free()
 
 		if err = sec.Undefine(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkConnectionDefinePool(b *testing.B) {
+	env := newTestEnvironment(b)
+	defer env.cleanUp()
+
+	var xml bytes.Buffer
+	data := newTestStoragePoolData()
+
+	if err := testStoragePoolTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+	xmlStr := xml.String()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		pool, err := env.conn.DefineStoragePool(xmlStr)
+		if err != nil {
+			b.Error(err)
+		}
+		defer pool.Free()
+
+		if err = pool.Undefine(); err != nil {
 			b.Error(err)
 		}
 	}

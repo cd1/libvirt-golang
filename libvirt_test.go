@@ -71,6 +71,14 @@ const testSnapshotXML = `
     <name>{{.Name}}</name>
 </domainsnapshot>`
 
+const testStoragePoolXML = `
+<pool type="{{.Type}}">
+    <name>{{.Name}}</name>
+    <target>
+        <path>{{.TargetPath}}</path>
+    </target>
+</pool>`
+
 // Configuration variables. Feel free to change them.
 var (
 	testConnectionURI = "qemu:///session"
@@ -83,6 +91,7 @@ var (
 	testDomainTmpl         = template.Must(template.New("test-domain").Parse(testDomainXML))
 	testSecretTmpl         = template.Must(template.New("test-secret").Parse(testSecretXML))
 	testSnapshotTmpl       = template.Must(template.New("test-snapshot").Parse(testSnapshotXML))
+	testStoragePoolTmpl    = template.Must(template.New("test-storagepool").Parse(testStoragePoolXML))
 )
 
 // testDomainData contains the data of a domain used for testing.
@@ -117,6 +126,13 @@ type testSecretData struct {
 // testSnapshotData contains the data of a snapshot used for testing.
 type testSnapshotData struct {
 	Name string
+}
+
+// testStoragePoolData contains the data of a storage pool used for testing.
+type testStoragePoolData struct {
+	Name       string
+	TargetPath string
+	Type       string
 }
 
 // testEnvironment represents the environment used for a test function. It is
@@ -200,6 +216,16 @@ func newTestSecretData() *testSecretData {
 func newTestSnapshotData() *testSnapshotData {
 	return &testSnapshotData{
 		Name: fmt.Sprintf("snapshot-%v", utils.RandomString()),
+	}
+}
+
+// newTestStoragePoolData creates new data for a test storage pool.
+// The values are generated randomly every time this function is called.
+func newTestStoragePoolData() *testStoragePoolData {
+	return &testStoragePoolData{
+		Name:       fmt.Sprintf("name-%v", utils.RandomString()),
+		TargetPath: filepath.Join(os.TempDir(), fmt.Sprintf("storagepool-%v", utils.RandomString())),
+		Type:       "dir",
 	}
 }
 

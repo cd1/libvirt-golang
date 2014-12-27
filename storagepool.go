@@ -55,3 +55,20 @@ func (pool StoragePool) Free() error {
 
 	return nil
 }
+
+// Undefine undefines an inactive storage pool.
+func (pool StoragePool) Undefine() error {
+	pool.log.Println("undefining storage pool...")
+	cRet := C.virStoragePoolUndefine(pool.virStoragePool)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	pool.log.Println("pool undefined")
+
+	return nil
+}
