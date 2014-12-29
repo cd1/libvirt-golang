@@ -2,6 +2,7 @@ package libvirt
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/cd1/utils-golang"
@@ -99,7 +100,11 @@ func TestConnectionReadOnly(t *testing.T) {
 	}
 
 	xml.Reset()
-	poolData := newTestStoragePoolData()
+	poolData, err := newTestStoragePoolData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer poolData.cleanUp()
 
 	if err = testStoragePoolTmpl.Execute(&xml, poolData); err != nil {
 		t.Error(err)
@@ -107,6 +112,10 @@ func TestConnectionReadOnly(t *testing.T) {
 
 	if _, err = conn.DefineStoragePool(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining storage pools")
+	}
+
+	if _, err = conn.CreateStoragePool(xml.String()); err == nil {
+		t.Error("a readonly libvirt connection should not allow creating storage pools")
 	}
 }
 
@@ -581,7 +590,7 @@ func TestConnectionFindStoragePoolSources(t *testing.T) {
 }
 
 func TestConnectionListStoragePools(t *testing.T) {
-	env := newTestEnvironment(t)
+	env := newTestEnvironment(t).withStoragePool()
 	defer env.cleanUp()
 
 	if _, err := env.conn.ListStoragePools(StoragePoolListFlag(^uint32(0))); err == nil {
@@ -609,9 +618,14 @@ func TestConnectionDefineUndefineStoragePool(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestStoragePoolData()
 
-	if err := testStoragePoolTmpl.Execute(&xml, data); err != nil {
+	data, err := newTestStoragePoolData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer data.cleanUp()
+
+	if err = testStoragePoolTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
 	}
 
@@ -621,8 +635,60 @@ func TestConnectionDefineUndefineStoragePool(t *testing.T) {
 	}
 	defer pool.Free()
 
+	if err = pool.Create(); err != nil {
+		t.Error(err)
+	}
+
+	if err = pool.Destroy(); err != nil {
+		t.Error(err)
+	}
+
+	if err = pool.Delete(StoragePoolDeleteFlag(^uint32(0))); err == nil {
+		t.Error("an error was not returned when using an invalid delete flag")
+	}
+
+	if err = pool.Delete(PoolDeleteNormal); err != nil {
+		t.Error(err)
+	}
+
 	if err = pool.Undefine(); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestConnectionCreateDestroyStoragePool(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.CreateStoragePool(""); err == nil {
+		t.Error("an error was not returned when creating a storage pool with an empty XML descriptor")
+	}
+
+	var xml bytes.Buffer
+
+	data, err := newTestStoragePoolData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer data.cleanUp()
+
+	if err = testStoragePoolTmpl.Execute(&xml, data); err != nil {
+		t.Fatal(err)
+	}
+
+	pool, err := env.conn.CreateStoragePool(xml.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Free()
+
+	if err = pool.Destroy(); err != nil {
+		t.Error(err)
+	}
+
+	// as the pool is not persistent, there's no way to call "Delete" on it
+	if err = os.Remove(data.TargetPath); err != nil {
+		t.Log(err)
 	}
 }
 
@@ -732,9 +798,14 @@ func BenchmarkConnectionDefinePool(b *testing.B) {
 	defer env.cleanUp()
 
 	var xml bytes.Buffer
-	data := newTestStoragePoolData()
 
-	if err := testStoragePoolTmpl.Execute(&xml, data); err != nil {
+	data, err := newTestStoragePoolData()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer data.cleanUp()
+
+	if err = testStoragePoolTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
 	}
 	xmlStr := xml.String()
@@ -748,6 +819,38 @@ func BenchmarkConnectionDefinePool(b *testing.B) {
 		defer pool.Free()
 
 		if err = pool.Undefine(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkConnectionCreatePool(b *testing.B) {
+	env := newTestEnvironment(b)
+	defer env.cleanUp()
+
+	var xml bytes.Buffer
+
+	data, err := newTestStoragePoolData()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer data.cleanUp()
+
+	if err = testStoragePoolTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+	xmlStr := xml.String()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		pool, err := env.conn.CreateStoragePool(xmlStr)
+		if err != nil {
+			b.Error(err)
+		}
+		defer pool.Free()
+
+		if err = pool.Destroy(); err != nil {
 			b.Error(err)
 		}
 	}

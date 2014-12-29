@@ -142,6 +142,8 @@ type testEnvironment struct {
 	conn     *Connection
 	dom      *Domain
 	domData  *testDomainData
+	pool     *StoragePool
+	poolData *testStoragePoolData
 	sec      *Secret
 	secData  *testSecretData
 	snap     *Snapshot
@@ -221,12 +223,24 @@ func newTestSnapshotData() *testSnapshotData {
 
 // newTestStoragePoolData creates new data for a test storage pool.
 // The values are generated randomly every time this function is called.
-func newTestStoragePoolData() *testStoragePoolData {
-	return &testStoragePoolData{
+func newTestStoragePoolData() (*testStoragePoolData, error) {
+	path, err := ioutil.TempDir("", "storagepool-")
+	if err != nil {
+		return nil, err
+	}
+
+	data := &testStoragePoolData{
 		Name:       fmt.Sprintf("name-%v", utils.RandomString()),
-		TargetPath: filepath.Join(os.TempDir(), fmt.Sprintf("storagepool-%v", utils.RandomString())),
+		TargetPath: path,
 		Type:       "dir",
 	}
+
+	return data, nil
+}
+
+// cleanUp cleans up the storage pool data values, like temporary files.
+func (data *testStoragePoolData) cleanUp() error {
+	return os.Remove(data.TargetPath)
 }
 
 // newTestEnvironment creates a new test environment. Basically it opens a
@@ -289,6 +303,22 @@ func (env *testEnvironment) cleanUp() {
 		}
 
 		if err := env.sec.Free(); err != nil {
+			env.t.Error(err)
+		}
+	}
+
+	if env.pool != nil {
+		if err := env.pool.Undefine(); err != nil {
+			env.t.Error(err)
+		}
+
+		if err := env.pool.Free(); err != nil {
+			env.t.Error(err)
+		}
+	}
+
+	if env.poolData != nil {
+		if err := env.poolData.cleanUp(); err != nil {
 			env.t.Error(err)
 		}
 	}
@@ -364,6 +394,31 @@ func (env *testEnvironment) withSecret() *testEnvironment {
 
 	env.secData = data
 	env.sec = &sec
+
+	return env
+}
+
+// withStoragePool defines a new test storage pool. The pool "pool" will remain
+// inactive.
+func (env *testEnvironment) withStoragePool() *testEnvironment {
+	data, err := newTestStoragePoolData()
+	if err != nil {
+		env.t.Fatal(err)
+	}
+
+	var xml bytes.Buffer
+
+	if err = testStoragePoolTmpl.Execute(&xml, data); err != nil {
+		env.t.Fatal(err)
+	}
+
+	pool, err := env.conn.DefineStoragePool(xml.String())
+	if err != nil {
+		env.t.Fatal(err)
+	}
+
+	env.poolData = data
+	env.pool = &pool
 
 	return env
 }

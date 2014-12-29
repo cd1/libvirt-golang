@@ -32,6 +32,15 @@ const (
 	PoolListZFS         StoragePoolListFlag = C.VIR_CONNECT_LIST_STORAGE_POOLS_ZFS
 )
 
+// StoragePoolDeleteFlag defines how a storage pool should be deleted.
+type StoragePoolDeleteFlag uint32
+
+// Possible values for StoragePoolDeleteFlag.
+const (
+	PoolDeleteNormal StoragePoolDeleteFlag = C.VIR_STORAGE_POOL_DELETE_NORMAL
+	PoolDeleteZeroed StoragePoolDeleteFlag = C.VIR_STORAGE_POOL_DELETE_ZEROED
+)
+
 // StoragePool holds a libvirt storage pool. There are no exported fields.
 type StoragePool struct {
 	log            *log.Logger
@@ -69,6 +78,61 @@ func (pool StoragePool) Undefine() error {
 	}
 
 	pool.log.Println("pool undefined")
+
+	return nil
+}
+
+// Create starts an inactive storage pool.
+func (pool StoragePool) Create() error {
+	pool.log.Println("creating storage pool...")
+	cRet := C.virStoragePoolCreate(pool.virStoragePool, 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	pool.log.Println("pool created")
+
+	return nil
+}
+
+// Destroy destroys an active storage pool. This will deactivate the pool on the
+// host, but keep any persistent config associated with it. If it has a
+// persistent config it can later be restarted with "Create". This does not free
+// the associated StoragePool object.
+func (pool StoragePool) Destroy() error {
+	pool.log.Println("destroying storage pool...")
+	cRet := C.virStoragePoolDestroy(pool.virStoragePool)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	pool.log.Println("pool destroyed")
+
+	return nil
+}
+
+// Delete deletes the underlying pool resources. This is a non-recoverable
+// operation. The StoragePool object itself is not free'd.
+func (pool StoragePool) Delete(flags StoragePoolDeleteFlag) error {
+	pool.log.Printf("deleting storage pool (flags = %v)...\n", flags)
+	cRet := C.virStoragePoolDelete(pool.virStoragePool, C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	pool.log.Println("pool deleted")
 
 	return nil
 }

@@ -830,3 +830,31 @@ func (conn Connection) DefineStoragePool(xml string) (StoragePool, error) {
 
 	return pool, nil
 }
+
+// CreateStoragePool creates a new storage based on its XML description. The pool
+// is not persistent, so its definition will disappear when it is destroyed, or
+// if the host is restarted.
+// "Free" should be used to free the resources after the storage pool object is
+// no longer needed.
+func (conn Connection) CreateStoragePool(xml string) (StoragePool, error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	conn.log.Println("creating storage pool...")
+	cPool := C.virStoragePoolCreateXML(conn.virConnect, cXML, 0)
+
+	if cPool == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return StoragePool{}, err
+	}
+
+	pool := StoragePool{
+		log:            conn.log,
+		virStoragePool: cPool,
+	}
+
+	conn.log.Println("pool created")
+
+	return pool, nil
+}
