@@ -308,6 +308,16 @@ func (env *testEnvironment) cleanUp() {
 	}
 
 	if env.pool != nil {
+		active, err := env.pool.IsActive()
+		if err != nil {
+			env.t.Error(err)
+		}
+		if active {
+			if err := env.pool.Destroy(); err != nil {
+				env.t.Error(err)
+			}
+		}
+
 		if err := env.pool.Undefine(); err != nil {
 			env.t.Error(err)
 		}

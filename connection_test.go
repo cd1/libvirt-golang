@@ -635,12 +635,44 @@ func TestConnectionDefineUndefineStoragePool(t *testing.T) {
 	}
 	defer pool.Free()
 
+	active, err := pool.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if active {
+		t.Error("storage pool should not be active after defining it")
+	}
+
+	persistent, err := pool.IsPersistent()
+	if err != nil {
+		t.Error(err)
+	}
+	if !persistent {
+		t.Error("storage pool should be persistent after defining it")
+	}
+
 	if err = pool.Create(); err != nil {
 		t.Error(err)
 	}
 
+	active, err = pool.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if !active {
+		t.Error("storage pool should be active after starting it")
+	}
+
 	if err = pool.Destroy(); err != nil {
 		t.Error(err)
+	}
+
+	active, err = pool.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if active {
+		t.Error("storage pool should not be active after destroying it")
 	}
 
 	if err = pool.Delete(StoragePoolDeleteFlag(^uint32(0))); err == nil {
@@ -681,6 +713,14 @@ func TestConnectionCreateDestroyStoragePool(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Free()
+
+	persistent, err := pool.IsPersistent()
+	if err != nil {
+		t.Error(err)
+	}
+	if persistent {
+		t.Error("storage pool should not be persistent after creating it")
+	}
 
 	if err = pool.Destroy(); err != nil {
 		t.Error(err)

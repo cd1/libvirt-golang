@@ -136,3 +136,50 @@ func (pool StoragePool) Delete(flags StoragePoolDeleteFlag) error {
 
 	return nil
 }
+
+// IsActive determines if the storage pool is currently running.
+func (pool StoragePool) IsActive() (bool, error) {
+	pool.log.Println("checking whether storage pool is active...")
+	cRet := C.virStoragePoolIsActive(pool.virStoragePool)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return false, err
+	}
+
+	active := (ret == 1)
+
+	if active {
+		pool.log.Println("pool is active")
+	} else {
+		pool.log.Println("pool is not active")
+	}
+
+	return active, nil
+}
+
+// IsPersistent determines if the storage pool has a persistent configuration
+// which means it will still exist after shutting down.
+func (pool StoragePool) IsPersistent() (bool, error) {
+	pool.log.Println("checking whether storage pool is persistent...")
+	cRet := C.virStoragePoolIsPersistent(pool.virStoragePool)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return false, err
+	}
+
+	persistent := (ret == 1)
+
+	if persistent {
+		pool.log.Println("pool is persistent")
+	} else {
+		pool.log.Println("pool is not persistent")
+	}
+
+	return persistent, nil
+}
