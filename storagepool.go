@@ -1,9 +1,12 @@
 package libvirt
 
+// #include <stdlib.h>
 // #include <libvirt/libvirt.h>
 import "C"
 import (
 	"log"
+	"unicode/utf8"
+	"unsafe"
 )
 
 // StoragePoolListFlag defines a filter when listing storage pools.
@@ -39,6 +42,27 @@ type StoragePoolDeleteFlag uint32
 const (
 	PoolDeleteNormal StoragePoolDeleteFlag = C.VIR_STORAGE_POOL_DELETE_NORMAL
 	PoolDeleteZeroed StoragePoolDeleteFlag = C.VIR_STORAGE_POOL_DELETE_ZEROED
+)
+
+// StorageXMLFlag defines how the XML content should be read from a storage resource.
+type StorageXMLFlag uint32
+
+// Possible values for StorageXMLFlag.
+const (
+	StorageXMLDefault  StorageXMLFlag = 0
+	StorageXMLInactive StorageXMLFlag = C.VIR_STORAGE_XML_INACTIVE
+)
+
+// StoragePoolState represents the state of a storage pool.
+type StoragePoolState uint32
+
+// Possible values for StoragePoolState.
+const (
+	PoolStateInactive     StoragePoolState = C.VIR_STORAGE_POOL_INACTIVE
+	PoolStateBuilding     StoragePoolState = C.VIR_STORAGE_POOL_BUILDING
+	PoolStateRunning      StoragePoolState = C.VIR_STORAGE_POOL_RUNNING
+	PoolStateDegraded     StoragePoolState = C.VIR_STORAGE_POOL_DEGRADED
+	PoolStateInaccessible StoragePoolState = C.VIR_STORAGE_POOL_INACCESSIBLE
 )
 
 // StoragePool holds a libvirt storage pool. There are no exported fields.
@@ -182,4 +206,142 @@ func (pool StoragePool) IsPersistent() (bool, error) {
 	}
 
 	return persistent, nil
+}
+
+// Name fetches the locally unique name of the storage pool.
+func (pool StoragePool) Name() (string, error) {
+	pool.log.Println("reading storage pool name...")
+	cName := C.virStoragePoolGetName(pool.virStoragePool)
+
+	if cName == nil {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
+
+	name := C.GoString(cName)
+	pool.log.Printf("name: %v\n", name)
+
+	return name, nil
+}
+
+// UUID fetches the globally unique ID of the storage pool as a string.
+func (pool StoragePool) UUID() (string, error) {
+	cUUID := (*C.char)(C.malloc(C.size_t(C.VIR_UUID_STRING_BUFLEN)))
+	defer C.free(unsafe.Pointer(cUUID))
+
+	pool.log.Println("reading storage pool UUID...")
+	cRet := C.virStoragePoolGetUUIDString(pool.virStoragePool, cUUID)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
+
+	uuid := C.GoString(cUUID)
+	pool.log.Printf("UUID: %v\n", uuid)
+
+	return uuid, nil
+}
+
+// XML fetches an XML document describing all aspects of the storage pool. This
+// is suitable for later feeding back into the
+// "<Connection>.CreateStoragePool" method.
+func (pool StoragePool) XML(flags StorageXMLFlag) (string, error) {
+	pool.log.Printf("reading storage pool XML (flags = %v)...\n", flags)
+	cXML := C.virStoragePoolGetXMLDesc(pool.virStoragePool, C.uint(flags))
+
+	if cXML == nil {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
+	defer C.free(unsafe.Pointer(cXML))
+
+	xml := C.GoString(cXML)
+	pool.log.Printf("XML length: %v runes\n", utf8.RuneCountInString(xml))
+
+	return xml, nil
+}
+
+// InfoState extracts the storage pool state.
+func (pool StoragePool) InfoState() (StoragePoolState, error) {
+	var cInfo C.virStoragePoolInfo
+
+	pool.log.Println("reading storage pool state...")
+	cRet := C.virStoragePoolGetInfo(pool.virStoragePool, &cInfo)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return 0, err
+	}
+
+	state := StoragePoolState(cInfo.state)
+	pool.log.Printf("state: %v\n", state)
+
+	return state, nil
+}
+
+// InfoCapacity extracts the storage pool logical size (bytes).
+func (pool StoragePool) InfoCapacity() (uint64, error) {
+	var cInfo C.virStoragePoolInfo
+
+	pool.log.Println("reading storage pool capacity...")
+	cRet := C.virStoragePoolGetInfo(pool.virStoragePool, &cInfo)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return 0, err
+	}
+
+	capacity := uint64(cInfo.capacity)
+	pool.log.Printf("capacity: %v bytes\n", capacity)
+
+	return capacity, nil
+}
+
+// InfoAllocation extracts the storage pool current allocation (bytes).
+func (pool StoragePool) InfoAllocation() (uint64, error) {
+	var cInfo C.virStoragePoolInfo
+
+	pool.log.Println("reading storage pool allocation...")
+	cRet := C.virStoragePoolGetInfo(pool.virStoragePool, &cInfo)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return 0, err
+	}
+
+	allocation := uint64(cInfo.allocation)
+	pool.log.Printf("allocation: %v bytes\n", allocation)
+
+	return allocation, nil
+}
+
+// InfoAvailable extracts the storage pool remaining free space (bytes)
+func (pool StoragePool) InfoAvailable() (uint64, error) {
+	var cInfo C.virStoragePoolInfo
+
+	pool.log.Println("reading storage pool available space...")
+	cRet := C.virStoragePoolGetInfo(pool.virStoragePool, &cInfo)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return 0, err
+	}
+
+	available := uint64(cInfo.available)
+	pool.log.Printf("available: %v bytes\n", available)
+
+	return available, nil
 }

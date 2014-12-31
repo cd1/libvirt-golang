@@ -74,6 +74,7 @@ const testSnapshotXML = `
 const testStoragePoolXML = `
 <pool type="{{.Type}}">
     <name>{{.Name}}</name>
+    <uuid>{{.UUID}}</uuid>
     <target>
         <path>{{.TargetPath}}</path>
     </target>
@@ -133,6 +134,7 @@ type testStoragePoolData struct {
 	Name       string
 	TargetPath string
 	Type       string
+	UUID       string
 }
 
 // testEnvironment represents the environment used for a test function. It is
@@ -233,6 +235,7 @@ func newTestStoragePoolData() (*testStoragePoolData, error) {
 		Name:       fmt.Sprintf("name-%v", utils.RandomString()),
 		TargetPath: path,
 		Type:       "dir",
+		UUID:       uuid.New(),
 	}
 
 	return data, nil
