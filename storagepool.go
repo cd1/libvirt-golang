@@ -345,3 +345,58 @@ func (pool StoragePool) InfoAvailable() (uint64, error) {
 
 	return available, nil
 }
+
+// Autostart fetches the value of the autostart flag, which determines whether
+// the pool is automatically started at boot time.
+func (pool StoragePool) Autostart() (bool, error) {
+	var cAutostart C.int
+
+	pool.log.Println("checking whether storage pool autostarts...")
+	cRet := C.virStoragePoolGetAutostart(pool.virStoragePool, &cAutostart)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return false, err
+	}
+
+	autostart := (int32(cAutostart) == 1)
+
+	if autostart {
+		pool.log.Println("pool autostarts")
+	} else {
+		pool.log.Println("pool does not autostart")
+	}
+
+	return autostart, nil
+}
+
+// SetAutostart sets the autostart flag.
+func (pool StoragePool) SetAutostart(autostart bool) error {
+	var autostartInt int32
+	if autostart {
+		pool.log.Println("enabling storage pool autostart...")
+		autostartInt = 1
+	} else {
+		pool.log.Println("disabling storage pool autostart...")
+		autostartInt = 0
+	}
+
+	cRet := C.virStoragePoolSetAutostart(pool.virStoragePool, C.int(autostartInt))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	if autostart {
+		pool.log.Printf("autostart enabled")
+	} else {
+		pool.log.Printf("autostart disabled")
+	}
+
+	return nil
+}

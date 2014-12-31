@@ -87,3 +87,20 @@ func TestStoragePoolInit(t *testing.T) {
 		t.Errorf("storage pool available space + allocated space should be the same as its total capacity; got=%v, want=%v", sum, capacity)
 	}
 }
+
+func TestStoragePoolAutostart(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.SetAutostart(true); err != nil {
+		t.Fatal(err)
+	}
+
+	autostart, err := env.pool.Autostart()
+	if err != nil {
+		t.Error(err)
+	}
+	if !autostart {
+		t.Error("storage pool should have autostart enabled after setting it")
+	}
+}
