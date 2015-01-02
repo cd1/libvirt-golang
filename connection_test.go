@@ -732,6 +732,49 @@ func TestConnectionCreateDestroyStoragePool(t *testing.T) {
 	}
 }
 
+func TestConnectionLookupStoragePool(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if _, err := env.conn.LookupStoragePoolByName(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when using a non-existing pool name")
+	}
+
+	if _, err := env.conn.LookupStoragePoolByUUID(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when using a non-existing pool UUID")
+	}
+
+	pool, err := env.conn.LookupStoragePoolByName(env.poolData.Name)
+	if err != nil {
+		t.Error(err)
+	}
+	defer pool.Free()
+
+	name, err := pool.Name()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if name != env.poolData.Name {
+		t.Errorf("looked up storage pool with unexpected name; got=%v, want=%v", name, env.poolData.Name)
+	}
+
+	pool, err = env.conn.LookupStoragePoolByUUID(env.poolData.UUID)
+	if err != nil {
+		t.Error(err)
+	}
+	defer pool.Free()
+
+	uuid, err := pool.UUID()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if uuid != env.poolData.UUID {
+		t.Errorf("looked up storage pool with unexpected UUID; got=%v, want=%v", uuid, env.poolData.UUID)
+	}
+}
+
 func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)

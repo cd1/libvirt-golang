@@ -858,3 +858,56 @@ func (conn Connection) CreateStoragePool(xml string) (StoragePool, error) {
 
 	return pool, nil
 }
+
+// LookupStoragePoolByName fetches a storage pool based on its unique name.
+// "Free" should be used to free the resources after the storage pool object is
+// no longer needed.
+func (conn Connection) LookupStoragePoolByName(name string) (StoragePool, error) {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+
+	conn.log.Printf("looking up storage pool with name = %v\n", name)
+	cPool := C.virStoragePoolLookupByName(conn.virConnect, cName)
+
+	if cPool == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return StoragePool{}, err
+	}
+
+	conn.log.Println("pool found")
+
+	pool := StoragePool{
+		log:            conn.log,
+		virStoragePool: cPool,
+	}
+
+	return pool, nil
+}
+
+// LookupStoragePoolByUUID fetches a storage pool based on its globally
+// unique id.
+// "Free" should be used to free the resources after the storage pool object is
+// no longer needed.
+func (conn Connection) LookupStoragePoolByUUID(uuid string) (StoragePool, error) {
+	cUUID := C.CString(uuid)
+	defer C.free(unsafe.Pointer(cUUID))
+
+	conn.log.Printf("looking up storage pool with UUID = %v\n", uuid)
+	cPool := C.virStoragePoolLookupByUUIDString(conn.virConnect, cUUID)
+
+	if cPool == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return StoragePool{}, err
+	}
+
+	conn.log.Println("pool found")
+
+	pool := StoragePool{
+		log:            conn.log,
+		virStoragePool: cPool,
+	}
+
+	return pool, nil
+}
