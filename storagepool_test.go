@@ -104,3 +104,72 @@ func TestStoragePoolAutostart(t *testing.T) {
 		t.Error("storage pool should have autostart enabled after setting it")
 	}
 }
+
+func TestStoragePoolBuild(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Build(StoragePoolBuildFlag(^uint32(0))); err == nil {
+		t.Error("an error was not returned when using an invalid flag")
+	}
+
+	if err := env.pool.Build(PoolBuildNew); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStoragPoolRefresh(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Create(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.pool.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStoragePoolRef(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Ref(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := env.pool.Free(); err != nil {
+		t.Error(err)
+	}
+}
+
+func BenchmarkStoragePoolBuild(b *testing.B) {
+	env := newTestEnvironment(b).withStoragePool()
+	defer env.cleanUp()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := env.pool.Build(PoolBuildNew); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkStoragePoolRefresh(b *testing.B) {
+	env := newTestEnvironment(b).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Create(); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := env.pool.Refresh(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}

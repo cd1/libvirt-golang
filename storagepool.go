@@ -65,6 +65,18 @@ const (
 	PoolStateInaccessible StoragePoolState = C.VIR_STORAGE_POOL_INACCESSIBLE
 )
 
+// StoragePoolBuildFlag defines how a storage pool should be built.
+type StoragePoolBuildFlag uint32
+
+// Possible values for StoragePoolBuildFlag.
+const (
+	PoolBuildNew         StoragePoolBuildFlag = C.VIR_STORAGE_POOL_BUILD_NEW
+	PoolBuildRepair      StoragePoolBuildFlag = C.VIR_STORAGE_POOL_BUILD_REPAIR
+	PoolBuildResize      StoragePoolBuildFlag = C.VIR_STORAGE_POOL_BUILD_RESIZE
+	PoolBuildNoOverwrite StoragePoolBuildFlag = C.VIR_STORAGE_POOL_BUILD_NO_OVERWRITE
+	PoolBuildOverwrite   StoragePoolBuildFlag = C.VIR_STORAGE_POOL_BUILD_OVERWRITE
+)
+
 // StoragePool holds a libvirt storage pool. There are no exported fields.
 type StoragePool struct {
 	log            *log.Logger
@@ -396,6 +408,64 @@ func (pool StoragePool) SetAutostart(autostart bool) error {
 		pool.log.Printf("autostart enabled")
 	} else {
 		pool.log.Printf("autostart disabled")
+	}
+
+	return nil
+}
+
+// Build builds the underlying storage pool.
+func (pool StoragePool) Build(flags StoragePoolBuildFlag) error {
+	pool.log.Printf("building storage pool (flags = %v)...\n", flags)
+	cRet := C.virStoragePoolBuild(pool.virStoragePool, C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	pool.log.Println("pool built")
+
+	return nil
+}
+
+// Refresh requests that the pool refresh its list of volumes. This may involve
+// communicating with a remote server, and/or initializing new devices at the
+// OS layer.
+func (pool StoragePool) Refresh() error {
+	pool.log.Println("refreshing storage pool...")
+	cRet := C.virStoragePoolRefresh(pool.virStoragePool, 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	pool.log.Println("pool refreshed")
+
+	return nil
+}
+
+// Ref increments the reference count on the pool. For each additional call to
+// this method, there shall be a corresponding call to "Free" to release the
+// reference count, once the caller no longer needs the reference to
+// this object.
+// This method is typically useful for applications where multiple threads are
+// using a connection, and it is required that the connection remain open until
+// all threads have finished using it. ie, each new thread using a pool would
+// increment the reference count.
+func (pool StoragePool) Ref() error {
+	pool.log.Println("incrementing storage pool's reference count...")
+	cRet := C.virStoragePoolRef(pool.virStoragePool)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return err
 	}
 
 	return nil
