@@ -338,6 +338,7 @@ func TestConnectionLookupDomain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer dom.Free()
 
 	// ByID
 	if _, err := env.conn.LookupDomainByID(99); err == nil {
@@ -470,6 +471,7 @@ func TestConnectionLookupSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer sec.Free()
 
 	uuid, err := sec.UUID()
 	if err != nil {
@@ -484,6 +486,7 @@ func TestConnectionLookupSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer sec.Free()
 
 	usageType, err := sec.UsageType()
 	if err != nil {

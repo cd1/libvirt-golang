@@ -754,6 +754,7 @@ func TestDomainLookupSnapshot(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer snap.Free()
 
 	if newName := snap.Name(); newName != env.snapData.Name {
 		t.Errorf("wrong snapshot name; got=%v, want=%v", newName, env.snapData.Name)
