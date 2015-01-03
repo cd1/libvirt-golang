@@ -5,6 +5,7 @@ package libvirt
 import "C"
 import (
 	"log"
+	"reflect"
 	"unicode/utf8"
 	"unsafe"
 )
@@ -469,4 +470,37 @@ func (pool StoragePool) Ref() error {
 	}
 
 	return nil
+}
+
+// ListStorageVolumes collects the list of storage volumes, and allocate an
+// array to store those objects.
+func (pool StoragePool) ListStorageVolumes() ([]StorageVolume, error) {
+	var cStorageVolumes []C.virStorageVolPtr
+	cStorageVolumesSH := (*reflect.SliceHeader)(unsafe.Pointer(&cStorageVolumes))
+
+	pool.log.Println("reading storage volumes...")
+	cRet := C.virStoragePoolListAllVolumes(pool.virStoragePool, (**C.virStorageVolPtr)(unsafe.Pointer(&cStorageVolumesSH.Data)), 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(cStorageVolumesSH.Data))
+
+	cStorageVolumesSH.Cap = int(ret)
+	cStorageVolumesSH.Len = int(ret)
+
+	storageVolumes := make([]StorageVolume, ret)
+	for i, cVol := range cStorageVolumes {
+		storageVolumes[i] = StorageVolume{
+			log:           pool.log,
+			virStorageVol: cVol,
+		}
+	}
+
+	pool.log.Printf("volumes count: %v\n", ret)
+
+	return storageVolumes, nil
 }

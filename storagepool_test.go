@@ -144,6 +144,26 @@ func TestStoragePoolRef(t *testing.T) {
 	}
 }
 
+func TestStoragePoolListVolumes(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Create(); err != nil {
+		t.Fatal(err)
+	}
+
+	volumes, err := env.pool.ListStorageVolumes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, vol := range volumes {
+		if err = vol.Free(); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkStoragePoolBuild(b *testing.B) {
 	env := newTestEnvironment(b).withStoragePool()
 	defer env.cleanUp()
