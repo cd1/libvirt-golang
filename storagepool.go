@@ -78,6 +78,15 @@ const (
 	PoolBuildOverwrite   StoragePoolBuildFlag = C.VIR_STORAGE_POOL_BUILD_OVERWRITE
 )
 
+// StorageVolumeCreateFlag defines how a storage volume should be created.
+type StorageVolumeCreateFlag uint32
+
+// Possible values for StorageVolumeCreateFlag.
+const (
+	VolCreateDefault          StorageVolumeCreateFlag = 0
+	VolCreatePreallocMetadata StorageVolumeCreateFlag = C.VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
+)
+
 // StoragePool holds a libvirt storage pool. There are no exported fields.
 type StoragePool struct {
 	log            *log.Logger
@@ -503,4 +512,65 @@ func (pool StoragePool) ListStorageVolumes() ([]StorageVolume, error) {
 	pool.log.Printf("volumes count: %v\n", ret)
 
 	return storageVolumes, nil
+}
+
+// CreateStorageVolume creates a storage volume within a pool based on an XML
+// description. Not all pools support creation of volumes.
+// Since 1.0.1 VolCreatePreallocMetadata in "flags" can be used to get higher
+// performance with qcow2 image files which don't support full preallocation, by
+// creating a sparse image file with metadata.
+// "Free" should be used to free the resources after the storage volume object
+// is no longer needed.
+func (pool StoragePool) CreateStorageVolume(xml string, flags StorageVolumeCreateFlag) (StorageVolume, error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	pool.log.Printf("creating storage volume (flags = %v)...\n", flags)
+	cVol := C.virStorageVolCreateXML(pool.virStoragePool, cXML, C.uint(flags))
+
+	if cVol == nil {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return StorageVolume{}, err
+	}
+
+	pool.log.Println("volume created")
+
+	storageVolume := StorageVolume{
+		log:           pool.log,
+		virStorageVol: cVol,
+	}
+
+	return storageVolume, nil
+}
+
+// CreateStorageVolumeFrom creates a storage volume in the parent pool, using
+// the "cloneVol" volume as input. Information for the new volume (name, perms)
+// are passed via a typical volume XML description.
+// Since 1.0.1 VolCreatePreallocMetadata in "flags" can be used to get higher
+// performance with qcow2 image files which don't support full preallocation, by
+// creating a sparse image file with metadata.
+// "Free" should be used to free the resources after the storage volume object
+// is no longer needed.
+func (pool StoragePool) CreateStorageVolumeFrom(xml string, cloneVol StorageVolume, flags StorageVolumeCreateFlag) (StorageVolume, error) {
+	cXML := C.CString(xml)
+	defer C.free(unsafe.Pointer(cXML))
+
+	pool.log.Printf("creating storage volume from another volume (flags = %v)...\n", flags)
+	cVol := C.virStorageVolCreateXMLFrom(pool.virStoragePool, cXML, cloneVol.virStorageVol, C.uint(flags))
+
+	if cVol == nil {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return StorageVolume{}, err
+	}
+
+	pool.log.Println("volume created")
+
+	storageVolume := StorageVolume{
+		log:           pool.log,
+		virStorageVol: cVol,
+	}
+
+	return storageVolume, nil
 }

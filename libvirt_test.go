@@ -80,6 +80,12 @@ const testStoragePoolXML = `
     </target>
 </pool>`
 
+const testStorageVolumeXML = `
+<volume>
+    <name>{{.Name}}</name>
+    <capacity>{{.Capacity}}</capacity>
+</volume>`
+
 // Configuration variables. Feel free to change them.
 var (
 	testConnectionURI = "qemu:///session"
@@ -93,6 +99,7 @@ var (
 	testSecretTmpl         = template.Must(template.New("test-secret").Parse(testSecretXML))
 	testSnapshotTmpl       = template.Must(template.New("test-snapshot").Parse(testSnapshotXML))
 	testStoragePoolTmpl    = template.Must(template.New("test-storagepool").Parse(testStoragePoolXML))
+	testStorageVolumeTmpl  = template.Must(template.New("test-storagevolume").Parse(testStorageVolumeXML))
 )
 
 // testDomainData contains the data of a domain used for testing.
@@ -137,6 +144,12 @@ type testStoragePoolData struct {
 	UUID       string
 }
 
+// testStorageVolumeData contains the data of a storage volume used for testing.
+type testStorageVolumeData struct {
+	Capacity uint64
+	Name     string
+}
+
 // testEnvironment represents the environment used for a test function. It is
 // responsible for opening the connection to libvirt, creating test domains and
 // other resources, and cleaning them up.
@@ -151,6 +164,8 @@ type testEnvironment struct {
 	snap     *Snapshot
 	snapData *testSnapshotData
 	t        testing.TB
+	volData  *testStorageVolumeData
+	vol      *StorageVolume
 }
 
 // newTestDomainData creates new data for a test domain. Some values are
@@ -246,6 +261,15 @@ func (data *testStoragePoolData) cleanUp() error {
 	return os.Remove(data.TargetPath)
 }
 
+// newTestStorageVolumeData creates new data for a test storage volume.
+// The values are generated randomly every time this function is called.
+func newTestStorageVolumeData() *testStorageVolumeData {
+	return &testStorageVolumeData{
+		Capacity: uint64(rand.Intn(1048576) + 1), // <= 1 MiB
+		Name:     fmt.Sprintf("name-%v", utils.RandomString()),
+	}
+}
+
 // newTestEnvironment creates a new test environment. Basically it opens a
 // connection to libvirt.
 func newTestEnvironment(t testing.TB) *testEnvironment {
@@ -311,6 +335,16 @@ func (env *testEnvironment) cleanUp() {
 	}
 
 	if env.pool != nil {
+		if env.vol != nil {
+			if err := env.vol.Delete(); err != nil {
+				env.t.Error(err)
+			}
+
+			if err := env.vol.Free(); err != nil {
+				env.t.Error(err)
+			}
+		}
+
 		active, err := env.pool.IsActive()
 		if err != nil {
 			env.t.Error(err)
@@ -432,6 +466,35 @@ func (env *testEnvironment) withStoragePool() *testEnvironment {
 
 	env.poolData = data
 	env.pool = &pool
+
+	return env
+}
+
+// withStorageVolume creates a new test storage volume.
+func (env *testEnvironment) withStorageVolume() *testEnvironment {
+	if env.pool == nil {
+		env.withStoragePool()
+	}
+
+	if err := env.pool.Create(); err != nil {
+		env.t.Fatal(err)
+	}
+
+	data := newTestStorageVolumeData()
+
+	var xml bytes.Buffer
+
+	if err := testStorageVolumeTmpl.Execute(&xml, data); err != nil {
+		env.t.Fatal(err)
+	}
+
+	vol, err := env.pool.CreateStorageVolume(xml.String(), VolCreateDefault)
+	if err != nil {
+		env.t.Fatal(err)
+	}
+
+	env.volData = data
+	env.vol = &vol
 
 	return env
 }

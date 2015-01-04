@@ -1,6 +1,7 @@
 package libvirt
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -145,12 +146,8 @@ func TestStoragePoolRef(t *testing.T) {
 }
 
 func TestStoragePoolListVolumes(t *testing.T) {
-	env := newTestEnvironment(t).withStoragePool()
+	env := newTestEnvironment(t).withStorageVolume()
 	defer env.cleanUp()
-
-	if err := env.pool.Create(); err != nil {
-		t.Fatal(err)
-	}
 
 	volumes, err := env.pool.ListStorageVolumes()
 	if err != nil {
@@ -161,6 +158,69 @@ func TestStoragePoolListVolumes(t *testing.T) {
 		if err = vol.Free(); err != nil {
 			t.Error(err)
 		}
+	}
+}
+
+func TestStoragePoolCreateDeleteStorageVolume(t *testing.T) {
+	env := newTestEnvironment(t).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Create(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := env.pool.CreateStorageVolume("", VolCreateDefault); err == nil {
+		t.Error("an error was not returned when creating a volume with an empty XML descriptor")
+	}
+
+	var xml bytes.Buffer
+	data := newTestStorageVolumeData()
+
+	if err := testStorageVolumeTmpl.Execute(&xml, data); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := env.pool.CreateStorageVolume(xml.String(), StorageVolumeCreateFlag(^uint32(0))); err == nil {
+		t.Error("an error was not returned when creating a volume with an invalid flag")
+	}
+
+	if _, err := env.pool.CreateStorageVolumeFrom(xml.String(), StorageVolume{}, VolCreateDefault); err == nil {
+		t.Error("an error was not returned when creating a volume (based on another one) with an invalid base volume")
+	}
+
+	vol1, err := env.pool.CreateStorageVolume(xml.String(), VolCreateDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol1.Free()
+
+	if _, err := env.pool.CreateStorageVolumeFrom("", vol1, VolCreateDefault); err == nil {
+		t.Error("an error was not returned when creating a volume (based on another one) with an empty XML descriptor")
+	}
+
+	if _, err := env.pool.CreateStorageVolumeFrom(xml.String(), vol1, StorageVolumeCreateFlag(^uint32(0))); err == nil {
+		t.Error("an error was not returned when creating a volume (based on another one) with an invalid flag")
+	}
+
+	xml.Reset()
+	data = newTestStorageVolumeData()
+
+	if err := testStorageVolumeTmpl.Execute(&xml, data); err != nil {
+		t.Error(err)
+	}
+
+	vol2, err := env.pool.CreateStorageVolumeFrom(xml.String(), vol1, VolCreateDefault)
+	if err != nil {
+		t.Error(err)
+	}
+	defer vol2.Free()
+
+	if err = vol2.Delete(); err != nil {
+		t.Error(err)
+	}
+
+	if err = vol1.Delete(); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -188,6 +248,66 @@ func BenchmarkStoragePoolRefresh(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		if err := env.pool.Refresh(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkStoragePoolCrtVolume(b *testing.B) {
+	env := newTestEnvironment(b).withStoragePool()
+	defer env.cleanUp()
+
+	if err := env.pool.Create(); err != nil {
+		b.Fatal(err)
+	}
+
+	var xml bytes.Buffer
+	data := newTestStorageVolumeData()
+
+	if err := testStorageVolumeTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+
+	xmlStr := xml.String()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		vol, err := env.pool.CreateStorageVolume(xmlStr, VolCreateDefault)
+		if err != nil {
+			b.Error(err)
+		}
+		defer vol.Free()
+
+		if err = vol.Delete(); err != nil {
+			b.Error(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkStoragePoolCrtVolumeF(b *testing.B) {
+	env := newTestEnvironment(b).withStorageVolume()
+	defer env.cleanUp()
+
+	var xml bytes.Buffer
+	data := newTestStorageVolumeData()
+
+	if err := testStorageVolumeTmpl.Execute(&xml, data); err != nil {
+		b.Fatal(err)
+	}
+
+	xmlStr := xml.String()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		vol, err := env.pool.CreateStorageVolumeFrom(xmlStr, *env.vol, VolCreateDefault)
+		if err != nil {
+			b.Error(err)
+		}
+		defer vol.Free()
+
+		if err = vol.Delete(); err != nil {
 			b.Error(err)
 		}
 	}
