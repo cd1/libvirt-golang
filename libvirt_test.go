@@ -81,7 +81,7 @@ const testStoragePoolXML = `
 </pool>`
 
 const testStorageVolumeXML = `
-<volume>
+<volume type="{{.TypeString}}">
     <name>{{.Name}}</name>
     <capacity>{{.Capacity}}</capacity>
 </volume>`
@@ -146,8 +146,10 @@ type testStoragePoolData struct {
 
 // testStorageVolumeData contains the data of a storage volume used for testing.
 type testStorageVolumeData struct {
-	Capacity uint64
-	Name     string
+	Capacity   uint64
+	Name       string
+	Type       StorageVolumeType
+	TypeString string
 }
 
 // testEnvironment represents the environment used for a test function. It is
@@ -265,8 +267,10 @@ func (data *testStoragePoolData) cleanUp() error {
 // The values are generated randomly every time this function is called.
 func newTestStorageVolumeData() *testStorageVolumeData {
 	return &testStorageVolumeData{
-		Capacity: uint64(rand.Intn(1048576) + 1), // <= 1 MiB
-		Name:     fmt.Sprintf("name-%v", utils.RandomString()),
+		Capacity:   uint64(rand.Intn(1048576) + 1), // <= 1 MiB
+		Name:       fmt.Sprintf("name-%v", utils.RandomString()),
+		Type:       VolTypeFile,
+		TypeString: "file",
 	}
 }
 
