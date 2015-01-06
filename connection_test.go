@@ -63,28 +63,34 @@ func TestConnectionRef(t *testing.T) {
 }
 
 func TestConnectionReadOnly(t *testing.T) {
-	conn, err := Open(testConnectionURI, ReadOnly, testLogOutput)
+	roConn, err := Open(testConnectionURI, ReadOnly, testLogOutput)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer roConn.Close()
+
+	rwConn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rwConn.Close()
 
 	var xml bytes.Buffer
-	domData, err := newTestDomainData()
+	domData, err := newTestDomainData(rwConn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer domData.cleanUp()
+	defer domData.cleanUp(rwConn)
 
 	if err = testDomainTmpl.Execute(&xml, domData); err != nil {
 		t.Error(err)
 	}
 
-	if _, err = conn.DefineDomain(xml.String()); err == nil {
+	if _, err = roConn.DefineDomain(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining domains")
 	}
 
-	if _, err = conn.CreateDomain(xml.String(), DomCreateDefault); err == nil {
+	if _, err = roConn.CreateDomain(xml.String(), DomCreateDefault); err == nil {
 		t.Error("a readonly libvirt connection should not allow creating domains")
 	}
 
@@ -95,7 +101,7 @@ func TestConnectionReadOnly(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = conn.DefineSecret(xml.String()); err == nil {
+	if _, err = roConn.DefineSecret(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining secrets")
 	}
 
@@ -110,11 +116,11 @@ func TestConnectionReadOnly(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = conn.DefineStoragePool(xml.String()); err == nil {
+	if _, err = roConn.DefineStoragePool(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining storage pools")
 	}
 
-	if _, err = conn.CreateStoragePool(xml.String()); err == nil {
+	if _, err = roConn.CreateStoragePool(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow creating storage pools")
 	}
 }
@@ -252,11 +258,11 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data, err := newTestDomainData()
+	data, err := newTestDomainData(*env.conn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer data.cleanUp()
+	defer data.cleanUp(*env.conn)
 
 	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
@@ -306,11 +312,11 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data, err := newTestDomainData()
+	data, err := newTestDomainData(*env.conn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer data.cleanUp()
+	defer data.cleanUp(*env.conn)
 
 	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
@@ -391,11 +397,11 @@ func TestConnectionLookupDomain(t *testing.T) {
 	env := newTestEnvironment(t)
 	defer env.cleanUp()
 
-	data, err := newTestDomainData()
+	data, err := newTestDomainData(*env.conn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer data.cleanUp()
+	defer data.cleanUp(*env.conn)
 
 	var xml bytes.Buffer
 
@@ -846,10 +852,11 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 	defer env.cleanUp()
 
 	var xml bytes.Buffer
-	data, err := newTestDomainData()
+	data, err := newTestDomainData(*env.conn)
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer data.cleanUp(*env.conn)
 
 	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
@@ -876,10 +883,11 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 	defer env.cleanUp()
 
 	var xml bytes.Buffer
-	data, err := newTestDomainData()
+	data, err := newTestDomainData(*env.conn)
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer data.cleanUp(*env.conn)
 
 	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)

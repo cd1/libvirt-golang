@@ -7,9 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
 	"testing"
 	"text/template"
 
@@ -84,6 +81,9 @@ const testStorageVolumeXML = `
 <volume type="{{.TypeString}}">
     <name>{{.Name}}</name>
     <capacity>{{.Capacity}}</capacity>
+    <target>
+        <format type='{{.FormatType}}' />
+    </target>
 </volume>`
 
 // Configuration variables. Feel free to change them.
@@ -120,6 +120,7 @@ type testDomainData struct {
 	Type              string
 	UUID              string
 	VCPUs             int32
+	poolData          *testStoragePoolData
 }
 
 // testSecretData contains the data of a secret used for testing.
@@ -147,6 +148,7 @@ type testStoragePoolData struct {
 // testStorageVolumeData contains the data of a storage volume used for testing.
 type testStorageVolumeData struct {
 	Capacity   uint64
+	FormatType string
 	Name       string
 	Type       StorageVolumeType
 	TypeString string
@@ -172,9 +174,8 @@ type testEnvironment struct {
 
 // newTestDomainData creates new data for a test domain. Some values are
 // generated randomly every time this function is called.
-func newTestDomainData() (*testDomainData, error) {
+func newTestDomainData(conn Connection) (*testDomainData, error) {
 	data := &testDomainData{
-		DiskFormat:        "qcow2",
 		DiskSize:          rand.Intn(1048576) + 1, // <= 1 MiB
 		DiskTarget:        "vda",
 		Name:              fmt.Sprintf("domain-%v", utils.RandomString()),
@@ -189,29 +190,81 @@ func newTestDomainData() (*testDomainData, error) {
 		UUID:              uuid.New(),
 	}
 
-	// TODO: this path can be looked up only once instead of for every domain data.
-	qemuImgPath, err := exec.LookPath("qemu-img")
+	var poolXML bytes.Buffer
+	poolData, err := newTestStoragePoolData()
 	if err != nil {
 		return nil, err
 	}
 
-	diskPath := filepath.Join(os.TempDir(), fmt.Sprintf("%v-%v.%v", data.Name, data.DiskTarget, data.DiskFormat))
-
-	cmd := exec.Command(qemuImgPath, "create", diskPath, "-f", data.DiskFormat, strconv.Itoa(data.DiskSize))
-	if err := cmd.Run(); err != nil {
+	if err := testStoragePoolTmpl.Execute(&poolXML, poolData); err != nil {
 		return nil, err
 	}
 
-	data.DiskPath = diskPath
+	var volXML bytes.Buffer
+	volData := newTestStorageVolumeData()
+
+	if err := testStorageVolumeTmpl.Execute(&volXML, volData); err != nil {
+		return nil, err
+	}
+
+	pool, err := conn.CreateStoragePool(poolXML.String())
+	if err != nil {
+		return nil, err
+	}
+	defer pool.Free()
+
+	vol, err := pool.CreateStorageVolume(volXML.String(), VolCreateDefault)
+	if err != nil {
+		pool.Destroy()
+		poolData.cleanUp()
+		return nil, err
+	}
+	defer vol.Free()
+
+	volPath, err := vol.Path()
+	if err != nil {
+		vol.Delete()
+		pool.Destroy()
+		poolData.cleanUp()
+		return nil, err
+	}
+
+	data.DiskFormat = volData.FormatType
+	data.DiskPath = volPath
 	data.Memory = uint64(rand.Intn(int(data.MaxMemory)) + 1)
+	data.poolData = poolData
 	data.VCPUs = int32(rand.Intn(int(data.MaxVCPUs)) + 1)
 
 	return data, nil
 }
 
 // cleanUp cleans up the domain data values, like temporary files.
-func (data *testDomainData) cleanUp() error {
-	return os.Remove(data.DiskPath)
+func (data *testDomainData) cleanUp(conn Connection) error {
+	vol, err := conn.LookupStorageVolumeByPath(data.DiskPath)
+	if err != nil {
+		return err
+	}
+	defer vol.Free()
+
+	pool, err := vol.StoragePool()
+	if err != nil {
+		return err
+	}
+	defer pool.Free()
+
+	if err = vol.Delete(); err != nil {
+		return err
+	}
+
+	if err = pool.Destroy(); err != nil {
+		return err
+	}
+
+	if err = data.poolData.cleanUp(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // newTestSecretData creates new data for a test secret. The values are
@@ -268,6 +321,7 @@ func (data *testStoragePoolData) cleanUp() error {
 func newTestStorageVolumeData() *testStorageVolumeData {
 	return &testStorageVolumeData{
 		Capacity:   uint64(rand.Intn(1048576) + 1), // <= 1 MiB
+		FormatType: "qcow2",
 		Name:       fmt.Sprintf("name-%v", utils.RandomString()),
 		Type:       VolTypeFile,
 		TypeString: "file",
@@ -323,7 +377,7 @@ func (env *testEnvironment) cleanUp() {
 	}
 
 	if env.domData != nil {
-		if err := env.domData.cleanUp(); err != nil {
+		if err := env.domData.cleanUp(*env.conn); err != nil {
 			env.t.Error(err)
 		}
 	}
@@ -382,7 +436,7 @@ func (env *testEnvironment) cleanUp() {
 
 // withDomain defines a new test domain. The domain "dom" will not be started.
 func (env *testEnvironment) withDomain() *testEnvironment {
-	data, err := newTestDomainData()
+	data, err := newTestDomainData(*env.conn)
 	if err != nil {
 		env.t.Fatal(err)
 	}
