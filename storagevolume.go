@@ -21,6 +21,34 @@ const (
 	VolTypeNetdir  StorageVolumeType = C.VIR_STORAGE_VOL_NETDIR
 )
 
+// StorageVolumeResizeFlag defines how a storage volume should be resized.
+type StorageVolumeResizeFlag uint32
+
+// Possible values for StorageVolumeResizeFlag.
+const (
+	VolResizeDefault  StorageVolumeResizeFlag = 0
+	VolResizeAllocate StorageVolumeResizeFlag = C.VIR_STORAGE_VOL_RESIZE_ALLOCATE
+	VolResizeDelta    StorageVolumeResizeFlag = C.VIR_STORAGE_VOL_RESIZE_DELTA
+	VolResizeShrink   StorageVolumeResizeFlag = C.VIR_STORAGE_VOL_RESIZE_SHRINK
+)
+
+// StorageVolumeWipeAlgorithm defines the algorithm used to wipe a
+// storage volume.
+type StorageVolumeWipeAlgorithm uint32
+
+// Possible values for StorageVolumeWipeAlgorithm.
+const (
+	VolWipeAlgZero       StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_ZERO
+	VolWipeAlgNNSA       StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_NNSA
+	VolWipeAlgDoD        StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_DOD
+	VolWipeAlgBSI        StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_BSI
+	VolWipeAlgGutmann    StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_GUTMANN
+	VolWipeAlgSchneier   StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER
+	VolWipeAlgPfitzner7  StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7
+	VolWipeAlgPfitzner33 StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33
+	VolWipeAlgRandom     StorageVolumeWipeAlgorithm = C.VIR_STORAGE_VOL_WIPE_ALG_RANDOM
+)
+
 // StorageVolume holds a libvirt storage volume. There are no exported fields.
 type StorageVolume struct {
 	log           *log.Logger
@@ -197,4 +225,82 @@ func (vol StorageVolume) InfoAllocation() (uint64, error) {
 	vol.log.Printf("allocation: %v\n", allocation)
 
 	return allocation, nil
+}
+
+// Resize changes the capacity of the storage volume to "capacity". The
+// operation will fail if the new capacity requires allocation that would exceed
+// the remaining free space in the parent pool. The contents of the new capacity
+// will appear as all zero bytes. The capacity value will be rounded to the
+// granularity supported by the hypervisor.
+// Normally, the operation will attempt to affect capacity with a minimum impact
+// on allocation (that is, the default operation favors a sparse resize). If
+// "flags" contains VolResizeAllocate, then the operation will ensure that
+// allocation is sufficient for the new capacity; this may make the operation
+// take noticeably longer.
+// Normally, the operation treats "capacity" as the new size in bytes; but if
+// "flags" contains VolResizeDelta, then "capacity" represents the size
+// difference to add to the current size. It is up to the storage pool
+// implementation whether unaligned requests are rounded up to the next valid
+// boundary, or rejected.
+// Normally, this operation should only be used to enlarge capacity; but if
+// "flags" contains VolResizeShrink, it is possible to attempt a reduction in
+// capacity even though it might cause data loss. If VolResizeDelta is also
+// present, then "capacity" is subtracted from the current size; without it,
+// "capacity" represents the absolute new size regardless of whether it is
+// larger or smaller than the current size.
+func (vol StorageVolume) Resize(capacity uint64, flags StorageVolumeResizeFlag) error {
+	vol.log.Printf("resizing storage volume to %v bytes (flags = %v)...\n", capacity, flags)
+	cRet := C.virStorageVolResize(vol.virStorageVol, C.ulonglong(capacity), C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		vol.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	vol.log.Println("volume resized")
+
+	return nil
+}
+
+// Wipe ensure data previously on a volume is not accessible to future reads.
+func (vol StorageVolume) Wipe(alg StorageVolumeWipeAlgorithm) error {
+	vol.log.Printf("wiping storage volume with algorithm %v...\n", alg)
+	cRet := C.virStorageVolWipePattern(vol.virStorageVol, C.uint(alg), 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		vol.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	vol.log.Println("volume wiped")
+
+	return nil
+}
+
+// Ref increments the reference count on the vol. For each additional call to
+// this method, there shall be a corresponding call to "Free" to release the
+// reference count, once the caller no longer needs the reference to
+// this object.
+// This method is typically useful for applications where multiple threads are
+// using a connection, and it is required that the connection remain open until
+// all threads have finished using it. ie, each new thread using a vol would
+// increment the reference count.
+func (vol StorageVolume) Ref() error {
+	vol.log.Println("incrementing storage volume's reference count...")
+	cRet := C.virStorageVolRef(vol.virStorageVol)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		vol.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	vol.log.Println("reference count incremented")
+
+	return nil
 }
