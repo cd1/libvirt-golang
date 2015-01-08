@@ -117,6 +117,25 @@ func TestStorageVolumeRef(t *testing.T) {
 	}
 }
 
+func TestStorageVolumeLookupPool(t *testing.T) {
+	env := newTestEnvironment(t).withStorageVolume()
+	defer env.cleanUp()
+
+	pool, err := env.vol.StoragePool()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	uuid, err := pool.UUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if uuid != env.poolData.UUID {
+		t.Errorf("unexpected pool looked up from storage volume; got=%v, want=%v", uuid, env.poolData.UUID)
+	}
+}
+
 func BenchmarkStorageVolumeResize(b *testing.B) {
 	env := newTestEnvironment(b).withStorageVolume()
 	defer env.cleanUp()

@@ -304,3 +304,26 @@ func (vol StorageVolume) Ref() error {
 
 	return nil
 }
+
+// StoragePool fetches a storage pool which contains a particular volume.
+// "Free" should be used to free the resources after the storage pool object is
+// no longer needed.
+func (vol StorageVolume) StoragePool() (StoragePool, error) {
+	vol.log.Println("looking up storage pool by storage volume...")
+	cPool := C.virStoragePoolLookupByVolume(vol.virStorageVol)
+
+	if cPool == nil {
+		err := LastError()
+		vol.log.Printf("an error occurred: %v\n", err)
+		return StoragePool{}, err
+	}
+
+	vol.log.Println("pool found")
+
+	pool := StoragePool{
+		log:            vol.log,
+		virStoragePool: cPool,
+	}
+
+	return pool, nil
+}

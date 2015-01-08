@@ -3,6 +3,8 @@ package libvirt
 import (
 	"bytes"
 	"testing"
+
+	"github.com/cd1/utils-golang"
 )
 
 func TestStoragePoolInit(t *testing.T) {
@@ -221,6 +223,30 @@ func TestStoragePoolCreateDeleteStorageVolume(t *testing.T) {
 
 	if err = vol1.Delete(); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestStoragePoolLookupVolume(t *testing.T) {
+	env := newTestEnvironment(t).withStorageVolume()
+	defer env.cleanUp()
+
+	if _, err := env.pool.LookupStorageVolumeByName(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when looking up a storage volume with an invalid name")
+	}
+
+	vol, err := env.pool.LookupStorageVolumeByName(env.volData.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Free()
+
+	name, err := vol.Name()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if name != env.volData.Name {
+		t.Errorf("unexpected looked up storage volume name; got=%v, want=%v", name, env.volData.Name)
 	}
 }
 

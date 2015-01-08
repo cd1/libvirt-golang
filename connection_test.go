@@ -775,6 +775,59 @@ func TestConnectionLookupStoragePool(t *testing.T) {
 	}
 }
 
+func TestConnectionLookupVolume(t *testing.T) {
+	env := newTestEnvironment(t).withStorageVolume()
+	defer env.cleanUp()
+
+	if _, err := env.conn.LookupStorageVolumeByKey(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when looking up a storage volume with an invalid key")
+	}
+
+	if _, err := env.conn.LookupStorageVolumeByPath(utils.RandomString()); err == nil {
+		t.Error("an error was not returned when looking up a storage volume with an invalid path")
+	}
+
+	key, err := env.vol.Key()
+	if err != nil {
+		t.Error(err)
+	}
+
+	vol, err := env.conn.LookupStorageVolumeByKey(key)
+	if err != nil {
+		t.Error(err)
+	}
+	defer vol.Free()
+
+	lookedUpKey, err := env.vol.Key()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if lookedUpKey != key {
+		t.Errorf("unexpected looked up storage volume key; got=%v, want=%v", lookedUpKey, key)
+	}
+
+	path, err := env.vol.Path()
+	if err != nil {
+		t.Error(err)
+	}
+
+	vol, err = env.conn.LookupStorageVolumeByPath(path)
+	if err != nil {
+		t.Error(err)
+	}
+	defer vol.Free()
+
+	lookedUpPath, err := vol.Path()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if lookedUpPath != path {
+		t.Errorf("unexpected looked up storage volume path; got=%v, want=%v", lookedUpPath, path)
+	}
+}
+
 func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)

@@ -911,3 +911,57 @@ func (conn Connection) LookupStoragePoolByUUID(uuid string) (StoragePool, error)
 
 	return pool, nil
 }
+
+// LookupStorageVolumeByPath fetches a pointer to a storage volume based on its
+// locally (host) unique path.
+//"Free" should be used to free the resources after the storage volume object is
+// no longer needed.
+func (conn Connection) LookupStorageVolumeByPath(path string) (StorageVolume, error) {
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+
+	conn.log.Printf("looking up storage volume by path = %v...\n", path)
+	cVol := C.virStorageVolLookupByPath(conn.virConnect, cPath)
+
+	if cVol == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return StorageVolume{}, err
+	}
+
+	conn.log.Println("volume found")
+
+	vol := StorageVolume{
+		log:           conn.log,
+		virStorageVol: cVol,
+	}
+
+	return vol, nil
+}
+
+// LookupStorageVolumeByKey fetches a pointer to a storage volume based on its
+// globally unique key.
+// "Free" should be used to free the resources after the storage volume object
+// is no longer needed.
+func (conn Connection) LookupStorageVolumeByKey(key string) (StorageVolume, error) {
+	cKey := C.CString(key)
+	defer C.free(unsafe.Pointer(cKey))
+
+	conn.log.Printf("looking up storage volume by key = %v...\n", key)
+	cVol := C.virStorageVolLookupByKey(conn.virConnect, cKey)
+
+	if cVol == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return StorageVolume{}, err
+	}
+
+	conn.log.Println("volume found")
+
+	vol := StorageVolume{
+		log:           conn.log,
+		virStorageVol: cVol,
+	}
+
+	return vol, nil
+}

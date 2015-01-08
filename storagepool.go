@@ -574,3 +574,30 @@ func (pool StoragePool) CreateStorageVolumeFrom(xml string, cloneVol StorageVolu
 
 	return storageVolume, nil
 }
+
+// LookupStorageVolumeByName Fetch a pointer to a storage volume based on its
+// name within a pool.
+// "Free" should be used to free the resources after the storage volume object
+// is no longer needed.
+func (pool StoragePool) LookupStorageVolumeByName(name string) (StorageVolume, error) {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+
+	pool.log.Printf("looking up storage volume by name = %v...\n", name)
+	cVol := C.virStorageVolLookupByName(pool.virStoragePool, cName)
+
+	if cVol == nil {
+		err := LastError()
+		pool.log.Printf("an error occurred: %v\n", err)
+		return StorageVolume{}, err
+	}
+
+	pool.log.Println("volume found")
+
+	vol := StorageVolume{
+		log:           pool.log,
+		virStorageVol: cVol,
+	}
+
+	return vol, nil
+}
