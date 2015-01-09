@@ -76,7 +76,10 @@ func TestDomainID(t *testing.T) {
 	env := newTestEnvironment(t)
 	defer env.cleanUp()
 
-	data := newTestDomainData(t)
+	data, err := newTestDomainData()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer data.cleanUp()
 
 	var xml bytes.Buffer

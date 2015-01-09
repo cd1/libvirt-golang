@@ -103,7 +103,6 @@ type testDomainData struct {
 	Type              string
 	UUID              string
 	VCPUs             int32
-	t                 testing.TB
 }
 
 // testSecretData contains the data of a secret used for testing.
@@ -136,7 +135,7 @@ type testEnvironment struct {
 
 // newTestDomainData creates new data for a test domain. Some values are
 // generated randomly every time this function is called.
-func newTestDomainData(t testing.TB) *testDomainData {
+func newTestDomainData() (*testDomainData, error) {
 	data := &testDomainData{
 		DiskFormat:        "qcow2",
 		DiskSize:          rand.Intn(1048576) + 1, // <= 1 MiB
@@ -151,27 +150,26 @@ func newTestDomainData(t testing.TB) *testDomainData {
 		OSType:            "hvm",
 		Type:              "kvm",
 		UUID:              uuid.New(),
-		t:                 t,
 	}
 
 	// TODO: this path can be looked up only once instead of for every domain data.
 	qemuImgPath, err := exec.LookPath("qemu-img")
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	diskPath := filepath.Join(os.TempDir(), fmt.Sprintf("%v-%v.%v", data.Name, data.DiskTarget, data.DiskFormat))
 
 	cmd := exec.Command(qemuImgPath, "create", diskPath, "-f", data.DiskFormat, strconv.Itoa(data.DiskSize))
 	if err := cmd.Run(); err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	data.DiskPath = diskPath
 	data.Memory = uint64(rand.Intn(int(data.MaxMemory)) + 1)
 	data.VCPUs = int32(rand.Intn(int(data.MaxVCPUs)) + 1)
 
-	return data
+	return data, nil
 }
 
 // cleanUp cleans up the domain data values, like temporary files.
@@ -277,11 +275,14 @@ func (env *testEnvironment) cleanUp() {
 
 // withDomain defines a new test domain. The domain "dom" will not be started.
 func (env *testEnvironment) withDomain() *testEnvironment {
-	data := newTestDomainData(env.t)
+	data, err := newTestDomainData()
+	if err != nil {
+		env.t.Fatal(err)
+	}
 
 	var xml bytes.Buffer
 
-	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		env.t.Fatal(err)
 	}
 

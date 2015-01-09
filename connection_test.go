@@ -69,18 +69,21 @@ func TestConnectionReadOnly(t *testing.T) {
 	defer conn.Close()
 
 	var xml bytes.Buffer
-	domData := newTestDomainData(t)
+	domData, err := newTestDomainData()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer domData.cleanUp()
 
 	if err = testDomainTmpl.Execute(&xml, domData); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := conn.DefineDomain(xml.String()); err == nil {
+	if _, err = conn.DefineDomain(xml.String()); err == nil {
 		t.Error("a readonly libvirt connection should not allow defining domains")
 	}
 
-	if _, err := conn.CreateDomain(xml.String(), DomCreateDefault); err == nil {
+	if _, err = conn.CreateDomain(xml.String(), DomCreateDefault); err == nil {
 		t.Error("a readonly libvirt connection should not allow creating domains")
 	}
 
@@ -217,14 +220,17 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestDomainData(t)
+	data, err := newTestDomainData()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer data.cleanUp()
 
-	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := env.conn.CreateDomain(xml.String(), DomainCreateFlag(99)); err == nil {
+	if _, err = env.conn.CreateDomain(xml.String(), DomainCreateFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid create flag")
 	}
 
@@ -242,11 +248,11 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 		t.Error("domain should not be persistent after being created")
 	}
 
-	if err := dom.Destroy(DomainDestroyFlag(99)); err == nil {
+	if err = dom.Destroy(DomainDestroyFlag(99)); err == nil {
 		t.Error("an error was not returned when using an invalid destroy flag")
 	}
 
-	if err := dom.Destroy(DomDestroyDefault); err != nil {
+	if err = dom.Destroy(DomDestroyDefault); err != nil {
 		t.Error(err)
 	}
 
@@ -268,10 +274,13 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 	}
 
 	var xml bytes.Buffer
-	data := newTestDomainData(t)
+	data, err := newTestDomainData()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer data.cleanUp()
 
-	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
 	}
 
@@ -313,11 +322,11 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 		t.Error("domain should be persistent after being defined and destroyed")
 	}
 
-	if err := dom.Undefine(DomainUndefineFlag(99)); err == nil {
+	if err = dom.Undefine(DomainUndefineFlag(99)); err == nil {
 		t.Error("an error was not return when using an invalid undefine flag")
 	}
 
-	if err := dom.Undefine(DomUndefineDefault); err != nil {
+	if err = dom.Undefine(DomUndefineDefault); err != nil {
 		t.Error(err)
 	}
 
@@ -337,12 +346,15 @@ func TestConnectionLookupDomain(t *testing.T) {
 	env := newTestEnvironment(t)
 	defer env.cleanUp()
 
-	data := newTestDomainData(t)
+	data, err := newTestDomainData()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer data.cleanUp()
 
 	var xml bytes.Buffer
 
-	if err := testDomainTmpl.Execute(&xml, data); err != nil {
+	if err = testDomainTmpl.Execute(&xml, data); err != nil {
 		t.Fatal(err)
 	}
 
@@ -353,7 +365,7 @@ func TestConnectionLookupDomain(t *testing.T) {
 	defer dom.Free()
 
 	// ByID
-	if _, err := env.conn.LookupDomainByID(99); err == nil {
+	if _, err = env.conn.LookupDomainByID(99); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain ID")
 	}
 
@@ -393,7 +405,7 @@ func TestConnectionLookupDomain(t *testing.T) {
 	}
 
 	// ByUUID
-	if _, err := env.conn.LookupDomainByUUID(utils.RandomString()); err == nil {
+	if _, err = env.conn.LookupDomainByUUID(utils.RandomString()); err == nil {
 		t.Error("an error was not returned when looking up a non-existing domain UUID")
 	}
 
@@ -534,7 +546,10 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 	defer env.cleanUp()
 
 	var xml bytes.Buffer
-	data := newTestDomainData(b)
+	data, err := newTestDomainData()
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
@@ -549,7 +564,7 @@ func BenchmarkConnectionCreateDomain(b *testing.B) {
 		}
 		defer dom.Free()
 
-		if err := dom.Destroy(DomDestroyDefault); err != nil {
+		if err = dom.Destroy(DomDestroyDefault); err != nil {
 			b.Error(err)
 		}
 	}
@@ -561,7 +576,10 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 	defer env.cleanUp()
 
 	var xml bytes.Buffer
-	data := newTestDomainData(b)
+	data, err := newTestDomainData()
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
@@ -576,7 +594,7 @@ func BenchmarkConnectionDefineDomain(b *testing.B) {
 		}
 		defer dom.Free()
 
-		if err := dom.Undefine(DomUndefineDefault); err != nil {
+		if err = dom.Undefine(DomUndefineDefault); err != nil {
 			b.Error(err)
 		}
 	}
