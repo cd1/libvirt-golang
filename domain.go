@@ -403,7 +403,7 @@ func (dom Domain) Free() error {
 
 // Autostart provides a boolean value indicating whether the domain configured
 // to be automatically started when the host machine boots.
-func (dom Domain) Autostart() bool {
+func (dom Domain) Autostart() (bool, error) {
 	var cAutostart C.int
 	dom.log.Println("checking whether domain autostarts...")
 	cRet := C.virDomainGetAutostart(dom.virDomain, &cAutostart)
@@ -412,21 +412,22 @@ func (dom Domain) Autostart() bool {
 	if ret == -1 {
 		err := LastError()
 		dom.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	autostart := (int32(cAutostart) == 1)
+
 	if autostart {
 		dom.log.Println("domain autostarts")
 	} else {
 		dom.log.Println("domain does not autostart")
 	}
 
-	return autostart
+	return autostart, nil
 }
 
 // HasCurrentSnapshot determines if the domain has a current snapshot.
-func (dom Domain) HasCurrentSnapshot() bool {
+func (dom Domain) HasCurrentSnapshot() (bool, error) {
 	dom.log.Println("checking whether domain has current snapshot...")
 	cRet := C.virDomainHasCurrentSnapshot(dom.virDomain, 0)
 	ret := int32(cRet)
@@ -434,7 +435,7 @@ func (dom Domain) HasCurrentSnapshot() bool {
 	if ret == -1 {
 		err := LastError()
 		dom.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	hasCurrentSnapshot := (ret == 1)
@@ -445,13 +446,13 @@ func (dom Domain) HasCurrentSnapshot() bool {
 		dom.log.Println("domain does not have current snapshot")
 	}
 
-	return hasCurrentSnapshot
+	return hasCurrentSnapshot, nil
 }
 
 // HasManagedSaveImage checks if a domain has a managed save image as created
 // by ManagedSave(). Note that any running domain should not have such an
 // image, as it should have been removed on restart.
-func (dom Domain) HasManagedSaveImage() bool {
+func (dom Domain) HasManagedSaveImage() (bool, error) {
 	dom.log.Println("checking whether domain has managed save...")
 	cRet := C.virDomainHasManagedSaveImage(dom.virDomain, 0)
 	ret := int32(cRet)
@@ -459,7 +460,7 @@ func (dom Domain) HasManagedSaveImage() bool {
 	if ret == -1 {
 		err := LastError()
 		dom.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	hasManagedSave := (ret == 1)
@@ -470,11 +471,11 @@ func (dom Domain) HasManagedSaveImage() bool {
 		dom.log.Println("domain does not have managed save")
 	}
 
-	return hasManagedSave
+	return hasManagedSave, nil
 }
 
 // IsActive determines if the domain is currently running.
-func (dom Domain) IsActive() bool {
+func (dom Domain) IsActive() (bool, error) {
 	dom.log.Println("checking whether domain is active...")
 	cRet := C.virDomainIsActive(dom.virDomain)
 	ret := int32(cRet)
@@ -482,22 +483,23 @@ func (dom Domain) IsActive() bool {
 	if ret == -1 {
 		err := LastError()
 		dom.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	active := (ret == 1)
+
 	if active {
 		dom.log.Println("domain is active")
 	} else {
 		dom.log.Println("domain is not active")
 	}
 
-	return active
+	return active, nil
 }
 
 // IsPersistent determines if the domain has a persistent configuration which
 // means it will still exist after shutting down
-func (dom Domain) IsPersistent() bool {
+func (dom Domain) IsPersistent() (bool, error) {
 	dom.log.Println("checking whether domain is persistent...")
 	cRet := C.virDomainIsPersistent(dom.virDomain)
 	ret := int32(cRet)
@@ -505,7 +507,7 @@ func (dom Domain) IsPersistent() bool {
 	if ret == -1 {
 		err := LastError()
 		dom.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	persistent := (ret == 1)
@@ -516,11 +518,11 @@ func (dom Domain) IsPersistent() bool {
 		dom.log.Println("domain is not persistent")
 	}
 
-	return persistent
+	return persistent, nil
 }
 
 // IsUpdated determines if the domain has been updated.
-func (dom Domain) IsUpdated() bool {
+func (dom Domain) IsUpdated() (bool, error) {
 	dom.log.Println("checking whether domain is updated...")
 	cRet := C.virDomainIsUpdated(dom.virDomain)
 	ret := int32(cRet)
@@ -528,7 +530,7 @@ func (dom Domain) IsUpdated() bool {
 	if ret == -1 {
 		err := LastError()
 		dom.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	updated := (ret == 1)
@@ -539,7 +541,7 @@ func (dom Domain) IsUpdated() bool {
 		dom.log.Println("domain is not updated")
 	}
 
-	return updated
+	return updated, nil
 }
 
 // OSType gets the type of domain operation system.
@@ -560,14 +562,20 @@ func (dom Domain) OSType() (string, error) {
 }
 
 // Name gets the public name for that domain.
-func (dom Domain) Name() string {
+func (dom Domain) Name() (string, error) {
 	dom.log.Println("reading domain name...")
 	cName := C.virDomainGetName(dom.virDomain)
+
+	if cName == nil {
+		err := LastError()
+		dom.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
 
 	name := C.GoString(cName)
 	dom.log.Printf("domain name: %v\n", name)
 
-	return name
+	return name, nil
 }
 
 // Hostname gets the hostname for that domain.

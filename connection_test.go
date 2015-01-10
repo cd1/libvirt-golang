@@ -103,15 +103,27 @@ func TestConnectionInit(t *testing.T) {
 	env := newTestEnvironment(t)
 	defer env.cleanUp()
 
-	if !env.conn.IsAlive() {
+	alive, err := env.conn.IsAlive()
+	if err != nil {
+		t.Error(err)
+	}
+	if !alive {
 		t.Error("the libvirt connection was opened but it is not alive")
 	}
 
-	if env.conn.IsEncrypted() {
+	encrypted, err := env.conn.IsEncrypted()
+	if err != nil {
+		t.Error(err)
+	}
+	if encrypted {
 		t.Error("the libvirt connection is encrypted (but it should not)")
 	}
 
-	if !env.conn.IsSecure() {
+	secure, err := env.conn.IsSecure()
+	if err != nil {
+		t.Error(err)
+	}
+	if !secure {
 		t.Error("the libvirt connection is not secure (but it should)")
 	}
 
@@ -240,11 +252,19 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 	}
 	defer dom.Free()
 
-	if !dom.IsActive() {
+	active, err := dom.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if !active {
 		t.Error("domain should be active after being created")
 	}
 
-	if dom.IsPersistent() {
+	persistent, err := dom.IsPersistent()
+	if err != nil {
+		t.Error(err)
+	}
+	if persistent {
 		t.Error("domain should not be persistent after being created")
 	}
 
@@ -254,14 +274,6 @@ func TestConnectionCreateDestroyDomain(t *testing.T) {
 
 	if err = dom.Destroy(DomDestroyDefault); err != nil {
 		t.Error(err)
-	}
-
-	if dom.IsActive() {
-		t.Error("domain should not be active after being destroyed")
-	}
-
-	if dom.IsPersistent() {
-		t.Error("domain should still not be persistent after being created and destroyed")
 	}
 }
 
@@ -290,11 +302,19 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 	}
 	defer dom.Free()
 
-	if dom.IsActive() {
+	active, err := dom.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if active {
 		t.Error("domain should not be active after being defined")
 	}
 
-	if !dom.IsPersistent() {
+	persistent, err := dom.IsPersistent()
+	if err != nil {
+		t.Error(err)
+	}
+	if !persistent {
 		t.Error("domain should be persistent after being defined")
 	}
 
@@ -302,11 +322,19 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !dom.IsActive() {
+	active, err = dom.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if !active {
 		t.Error("domain should be active after being defined and created")
 	}
 
-	if !dom.IsPersistent() {
+	persistent, err = dom.IsPersistent()
+	if err != nil {
+		t.Error(err)
+	}
+	if !persistent {
 		t.Error("domain should still be persistent after being defined and created")
 	}
 
@@ -314,11 +342,16 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 		t.Error(err)
 	}
 
-	if dom.IsActive() {
+	active, err = dom.IsActive()
+	if err != nil {
+		t.Error(err)
+	}
+	if active {
 		t.Error("domain should not be active after being defined and destroyed")
 	}
 
-	if !dom.IsPersistent() {
+	persistent, err = dom.IsPersistent()
+	if !persistent {
 		t.Error("domain should be persistent after being defined and destroyed")
 	}
 
@@ -328,14 +361,6 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 
 	if err = dom.Undefine(DomUndefineDefault); err != nil {
 		t.Error(err)
-	}
-
-	if dom.IsActive() {
-		t.Error("domain should not be active after being undefined")
-	}
-
-	if dom.IsPersistent() {
-		t.Error("domain should not be persistent after being undefined")
 	}
 }
 
@@ -400,7 +425,12 @@ func TestConnectionLookupDomain(t *testing.T) {
 	}
 	defer dom.Free()
 
-	if name := dom.Name(); name != data.Name {
+	name, err := dom.Name()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if name != data.Name {
 		t.Errorf("looked up domain with unexpected name; got=%v, want=%v", name, data.Name)
 	}
 

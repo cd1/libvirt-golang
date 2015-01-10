@@ -110,14 +110,20 @@ func (snap Snapshot) Delete(flags SnapshotDeleteFlag) error {
 }
 
 // Name gets the public name for that snapshot.
-func (snap Snapshot) Name() string {
+func (snap Snapshot) Name() (string, error) {
 	snap.log.Println("reading snapshot name...")
 	cName := C.virDomainSnapshotGetName(snap.virSnapshot)
+
+	if cName == nil {
+		err := LastError()
+		snap.log.Printf("an error occurred: %v\n", err)
+		return "", err
+	}
 
 	name := C.GoString(cName)
 	snap.log.Printf("snapshot name: %v\n", name)
 
-	return name
+	return name, nil
 }
 
 // Parent gets the parent snapshot for "snap", if any.
@@ -159,7 +165,7 @@ func (snap Snapshot) XML(flags DomainXMLFlag) (string, error) {
 
 // HasMetadata determines if the given snapshot is associated with libvirt
 // metadata that would prevent the deletion of the domain.
-func (snap Snapshot) HasMetadata() bool {
+func (snap Snapshot) HasMetadata() (bool, error) {
 	snap.log.Println("checking whether snapshot has metadata...")
 	cRet := C.virDomainSnapshotHasMetadata(snap.virSnapshot, 0)
 	ret := int32(cRet)
@@ -167,7 +173,7 @@ func (snap Snapshot) HasMetadata() bool {
 	if ret == -1 {
 		err := LastError()
 		snap.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	metadata := (ret == 1)
@@ -178,12 +184,12 @@ func (snap Snapshot) HasMetadata() bool {
 		snap.log.Println("snapshot doesn't have metadata")
 	}
 
-	return metadata
+	return metadata, nil
 }
 
 // IsCurrent determines if the given snapshot is the domain's current snapshot.
 // See also "<Domain>.HasCurrentSnapshot".
-func (snap Snapshot) IsCurrent() bool {
+func (snap Snapshot) IsCurrent() (bool, error) {
 	snap.log.Println("checking whether snapshot is current...")
 	cRet := C.virDomainSnapshotIsCurrent(snap.virSnapshot, 0)
 	ret := int32(cRet)
@@ -191,7 +197,7 @@ func (snap Snapshot) IsCurrent() bool {
 	if ret == -1 {
 		err := LastError()
 		snap.log.Printf("an error occurred: %v\n", err)
-		return false
+		return false, err
 	}
 
 	current := (ret == 1)
@@ -202,7 +208,7 @@ func (snap Snapshot) IsCurrent() bool {
 		snap.log.Println("snapshot isn't current")
 	}
 
-	return current
+	return current, nil
 }
 
 // Ref increments the reference count on the snapshot. For each additional call

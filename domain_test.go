@@ -19,7 +19,11 @@ func TestDomainInit(t *testing.T) {
 	env := newTestEnvironment(t).withDomain()
 	defer env.cleanUp()
 
-	if env.dom.IsUpdated() {
+	updated, err := env.dom.IsUpdated()
+	if err != nil {
+		t.Error(err)
+	}
+	if updated {
 		t.Error("test domain should not have been updated initially")
 	}
 
@@ -32,7 +36,10 @@ func TestDomainInit(t *testing.T) {
 		t.Errorf("wrong test domain OS type; got=%v, want=%v", os, env.domData.OSType)
 	}
 
-	name := env.dom.Name()
+	name, err := env.dom.Name()
+	if err != nil {
+		t.Error(err)
+	}
 
 	if name != env.domData.Name {
 		t.Errorf("wrong test domain name; got=%v, want=%v", name, env.domData.Name)
@@ -56,7 +63,11 @@ func TestDomainAutostart(t *testing.T) {
 	env := newTestEnvironment(t).withDomain()
 	defer env.cleanUp()
 
-	if env.dom.Autostart() {
+	autostart, err := env.dom.Autostart()
+	if err != nil {
+		t.Error(err)
+	}
+	if autostart {
 		t.Error("test domain should not have autostart enabled by default")
 	}
 
@@ -64,7 +75,11 @@ func TestDomainAutostart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !env.dom.Autostart() {
+	autostart, err = env.dom.Autostart()
+	if err != nil {
+		t.Error(err)
+	}
+	if !autostart {
 		t.Error("test domain should have autostart enabled after setting")
 	}
 }
@@ -596,7 +611,11 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Error("an error was not returned when using an invalid save flag")
 	}
 
-	if env.dom.HasManagedSaveImage() {
+	hasManagedSave, err := env.dom.HasManagedSaveImage()
+	if err != nil {
+		t.Error(err)
+	}
+	if hasManagedSave {
 		t.Error("the test domain should not have a managed save image initially")
 	}
 
@@ -604,7 +623,11 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !env.dom.HasManagedSaveImage() {
+	hasManagedSave, err = env.dom.HasManagedSaveImage()
+	if err != nil {
+		t.Error(err)
+	}
+	if !hasManagedSave {
 		t.Error("the test domain should have a managed save image after creating a managed save image")
 	}
 
@@ -620,7 +643,11 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Error(err)
 	}
 
-	if env.dom.HasManagedSaveImage() {
+	hasManagedSave, err = env.dom.HasManagedSaveImage()
+	if err != nil {
+		t.Error(err)
+	}
+	if hasManagedSave {
 		t.Error("the test domain should not have a managed save image anymore after starting from an existing managed save image")
 	}
 
@@ -644,7 +671,11 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Errorf("unexpected domain state; got=%v (reason %v), want=%v (reason %v)", state, reason, expectedState, DomShutoffReasonSaved)
 	}
 
-	if !env.dom.HasManagedSaveImage() {
+	hasManagedSave, err = env.dom.HasManagedSaveImage()
+	if err != nil {
+		t.Error(err)
+	}
+	if !hasManagedSave {
 		t.Error("the test domain should have a managed save image after creating a managed save image")
 	}
 
@@ -652,7 +683,11 @@ func TestDomainManagedSave(t *testing.T) {
 		t.Error(err)
 	}
 
-	if env.dom.HasManagedSaveImage() {
+	hasManagedSave, err = env.dom.HasManagedSaveImage()
+	if err != nil {
+		t.Error(err)
+	}
+	if hasManagedSave {
 		t.Error("the test domain should not have a managed save image anymore after removing it")
 	}
 }
@@ -707,7 +742,11 @@ func TestDomainCreateAndDeleteSnapshot(t *testing.T) {
 	env := newTestEnvironment(t).withDomain()
 	defer env.cleanUp()
 
-	if env.dom.HasCurrentSnapshot() {
+	hasCurrentSnapshot, err := env.dom.HasCurrentSnapshot()
+	if err != nil {
+		t.Error(err)
+	}
+	if hasCurrentSnapshot {
 		t.Error("test domain should not have a current snapshot initially")
 	}
 
@@ -732,11 +771,19 @@ func TestDomainCreateAndDeleteSnapshot(t *testing.T) {
 	}
 	defer snap.Free()
 
-	if !env.dom.HasCurrentSnapshot() {
+	hasCurrentSnapshot, err = env.dom.HasCurrentSnapshot()
+	if err != nil {
+		t.Error(err)
+	}
+	if !hasCurrentSnapshot {
 		t.Error("test domain should have a current snapshot")
 	}
 
-	if !snap.IsCurrent() {
+	current, err := snap.IsCurrent()
+	if err != nil {
+		t.Error(err)
+	}
+	if !current {
 		t.Error("snapshot should be current (but it's not)")
 	}
 
@@ -759,7 +806,12 @@ func TestDomainLookupSnapshot(t *testing.T) {
 	}
 	defer snap.Free()
 
-	if newName := snap.Name(); newName != env.snapData.Name {
+	newName, err := snap.Name()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if newName != env.snapData.Name {
 		t.Errorf("wrong snapshot name; got=%v, want=%v", newName, env.snapData.Name)
 	}
 }

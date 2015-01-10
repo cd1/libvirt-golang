@@ -9,11 +9,16 @@ func TestSnapshotInit(t *testing.T) {
 	env := newTestEnvironment(t).withSnapshot()
 	defer env.cleanUp()
 
-	if name := env.snap.Name(); name != env.snapData.Name {
+	name, err := env.snap.Name()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if name != env.snapData.Name {
 		t.Errorf("unexpected snapshot name; got=%v, want=%v", name, env.snapData.Name)
 	}
 
-	_, err := env.snap.Parent()
+	_, err = env.snap.Parent()
 	if err == nil {
 		t.Error("an error was not returned when querying the parent snapshot of a root snapshot")
 	} else {
@@ -23,7 +28,11 @@ func TestSnapshotInit(t *testing.T) {
 		}
 	}
 
-	if !env.snap.HasMetadata() {
+	hasMetadata, err := env.snap.HasMetadata()
+	if err != nil {
+		t.Error(err)
+	}
+	if !hasMetadata {
 		t.Error("snapshot should have metadata (but it does not)")
 	}
 }
@@ -90,7 +99,12 @@ func TestSnapshotListChildren(t *testing.T) {
 		t.Errorf("unexpected snapshot children count; got=%v, want=1", l)
 	}
 
-	if childName := snapshots[0].Name(); childName != data.Name {
+	childName, err := snapshots[0].Name()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if childName != data.Name {
 		t.Errorf("unexpected snapshot child name; got=%v, want=%v\n", childName, data.Name)
 	}
 }

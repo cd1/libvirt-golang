@@ -176,67 +176,76 @@ func (conn Connection) LibVersion() (uint64, error) {
 // IsAlive determines if the connection to the hypervisor is still alive.
 // If an error occurs, the function will also return "false" and the error
 // message will be written to the log.
-func (conn Connection) IsAlive() bool {
+func (conn Connection) IsAlive() (bool, error) {
 	conn.log.Println("checking whether connection is alive...")
 	cRet := C.virConnectIsAlive(conn.virConnect)
 	ret := int32(cRet)
 
-	if ret == 1 {
-		conn.log.Println("connection is alive")
-		return true
+	if ret == -1 {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return false, err
 	}
 
-	if ret == -1 {
-		conn.log.Printf("an error occurred: %v\n", LastError())
+	alive := (ret == 1)
+
+	if alive {
+		conn.log.Println("connection is alive")
 	} else {
 		conn.log.Println("connection is not alive")
 	}
 
-	return false
+	return alive, nil
 }
 
 // IsEncrypted determines if the connection to the hypervisor is encrypted.
 // If an error occurs, the function will also return "false" and the error
 // message will be written to the log.
-func (conn Connection) IsEncrypted() bool {
+func (conn Connection) IsEncrypted() (bool, error) {
 	conn.log.Println("checking whether connection is encrypted...")
 	cRet := C.virConnectIsEncrypted(conn.virConnect)
 	ret := int32(cRet)
 
-	if ret == 1 {
-		conn.log.Println("connection is encrypted")
-		return true
+	if ret == -1 {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return false, err
 	}
 
-	if ret == -1 {
-		conn.log.Printf("an error occurred: %v\n", LastError())
+	encrypted := (ret == 1)
+
+	if encrypted {
+		conn.log.Println("connection is encrypted")
 	} else {
 		conn.log.Println("connection is not encrypted")
 	}
 
-	return false
+	return encrypted, nil
 }
 
 // IsSecure determines if the connection to the hypervisor is secure.
 // If an error occurs, the function will also return "false" and the error
 // message will be written to the log.
-func (conn Connection) IsSecure() bool {
+func (conn Connection) IsSecure() (bool, error) {
 	conn.log.Println("checking whether connection is secure...")
 	cRet := C.virConnectIsSecure(conn.virConnect)
 	ret := int32(cRet)
 
-	if ret == 1 {
-		conn.log.Println("connection is secure")
-		return true
+	if ret == -1 {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return false, err
 	}
 
-	if ret == -1 {
-		conn.log.Printf("an error occurred: %v\n", LastError())
+	secure := (ret == 1)
+
+	if secure {
+		conn.log.Println("connection is secure")
 	} else {
 		conn.log.Println("connection is not secure")
 	}
 
-	return false
+	return secure, nil
 }
 
 // Capabilities provides capabilities of the hypervisor/driver.
