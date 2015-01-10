@@ -507,7 +507,7 @@ func TestConnectionLookupSecret(t *testing.T) {
 	}
 }
 
-func BenchmarkConnectionOpenRW(b *testing.B) {
+func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
 		if err != nil {
@@ -521,117 +521,83 @@ func BenchmarkConnectionOpenRW(b *testing.B) {
 }
 
 func BenchmarkConnectionCreateDomain(b *testing.B) {
-	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
-	if err != nil {
-		b.Fatal(err)
-	}
+	env := newTestEnvironment(b)
+	defer env.cleanUp()
 
 	var xml bytes.Buffer
 	data := newTestDomainData(b)
 
-	if err = testDomainTmpl.Execute(&xml, data); err != nil {
+	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
 	}
 	xmlStr := xml.String()
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		dom, err := conn.CreateDomain(xmlStr, DomCreateDefault)
+		dom, err := env.conn.CreateDomain(xmlStr, DomCreateDefault)
 		if err != nil {
 			b.Error(err)
 		}
+		defer dom.Free()
 
 		if err := dom.Destroy(DomDestroyDefault); err != nil {
 			b.Error(err)
 		}
-
-		if err := dom.Free(); err != nil {
-			b.Error(err)
-		}
 	}
 	b.StopTimer()
-
-	if err = data.cleanUp(); err != nil {
-		b.Error(err)
-	}
-
-	if _, err := conn.Close(); err != nil {
-		b.Error(err)
-	}
 }
 
 func BenchmarkConnectionDefineDomain(b *testing.B) {
-	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
-	if err != nil {
-		b.Fatal(err)
-	}
+	env := newTestEnvironment(b)
+	defer env.cleanUp()
 
 	var xml bytes.Buffer
 	data := newTestDomainData(b)
 
-	if err = testDomainTmpl.Execute(&xml, data); err != nil {
+	if err := testDomainTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
 	}
 	xmlStr := xml.String()
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		dom, err := conn.DefineDomain(xmlStr)
+		dom, err := env.conn.DefineDomain(xmlStr)
 		if err != nil {
 			b.Error(err)
 		}
+		defer dom.Free()
 
 		if err := dom.Undefine(DomUndefineDefault); err != nil {
 			b.Error(err)
 		}
-
-		if err := dom.Free(); err != nil {
-			b.Error(err)
-		}
 	}
 	b.StopTimer()
-
-	if err = data.cleanUp(); err != nil {
-		b.Error(err)
-	}
-
-	if _, err := conn.Close(); err != nil {
-		b.Error(err)
-	}
 }
 
 func BenchmarkConnectionDefineSecret(b *testing.B) {
-	conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
-	if err != nil {
-		b.Fatal(err)
-	}
+	env := newTestEnvironment(b)
+	defer env.cleanUp()
 
 	var xml bytes.Buffer
+
 	data := newTestSecretData()
 
-	if err = testSecretTmpl.Execute(&xml, data); err != nil {
+	if err := testSecretTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
 	}
 	xmlStr := xml.String()
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		sec, err := conn.DefineSecret(xmlStr)
+		sec, err := env.conn.DefineSecret(xmlStr)
 		if err != nil {
 			b.Error(err)
 		}
+		defer sec.Free()
 
 		if err = sec.Undefine(); err != nil {
 			b.Error(err)
 		}
-
-		if err = sec.Free(); err != nil {
-			b.Error(err)
-		}
 	}
 	b.StopTimer()
-
-	if _, err := conn.Close(); err != nil {
-		b.Error(err)
-	}
 }

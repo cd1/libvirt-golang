@@ -835,12 +835,12 @@ func BenchmarkDomainCreateSnapshot(b *testing.B) {
 	defer env.cleanUp()
 
 	var xml bytes.Buffer
+
 	data := newTestSnapshotData()
 
 	if err := testSnapshotTmpl.Execute(&xml, data); err != nil {
 		b.Fatal(err)
 	}
-
 	xmlStr := xml.String()
 
 	b.ResetTimer()
@@ -849,13 +849,11 @@ func BenchmarkDomainCreateSnapshot(b *testing.B) {
 		if err != nil {
 			b.Error(err)
 		}
+		defer snap.Free()
 
 		if err := snap.Delete(SnapDeleteDefault); err != nil {
 			b.Error(err)
 		}
-
-		if err := snap.Free(); err != nil {
-			b.Error(err)
-		}
 	}
+	b.StopTimer()
 }
