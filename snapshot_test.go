@@ -106,3 +106,16 @@ func TestSnapshotRevert(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func BenchmarkSnapshotRevertTo(b *testing.B) {
+	env := newTestEnvironment(b).withSnapshot()
+	defer env.cleanUp()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := env.snap.Revert(SnapRevertDefault); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+}
