@@ -17,9 +17,13 @@ func TestConnectionOpenClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = conn.Close()
+	ref, err := conn.Close()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if ref != 0 {
+		t.Errorf("unexpected connection reference count after closing connection; got=%v, want=0", ref)
 	}
 }
 
@@ -29,13 +33,19 @@ func TestConnectionOpenDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = conn.Close(); err != nil {
+	ref, err := conn.Close()
+	if err != nil {
 		t.Error(err)
+	}
+
+	if ref != 0 {
+		t.Errorf("unexpected connection reference count after closing connection; got=%v, want=0", ref)
 	}
 }
 
 func TestConnectionRef(t *testing.T) {
 	env := newTestEnvironment(t)
+	defer env.cleanUp()
 
 	if err := env.conn.Ref(); err != nil {
 		t.Fatal(err)
@@ -49,15 +59,6 @@ func TestConnectionRef(t *testing.T) {
 	if ref != 1 {
 		t.Errorf("unexpected connection reference count after closing connection for the first time; got=%v, want=1", ref)
 	}
-
-	ref, err = env.conn.Close()
-	if err != nil {
-		t.Error("could not close the connection for the second time after calling Ref")
-	}
-
-	if ref != 0 {
-		t.Errorf("unexpected connection reference count after closing connection for the second time; got=%v, want=0", ref)
-	}
 }
 
 func TestConnectionReadOnly(t *testing.T) {
@@ -68,11 +69,11 @@ func TestConnectionReadOnly(t *testing.T) {
 	defer conn.Close()
 
 	var xml bytes.Buffer
-	data := newTestDomainData(t)
-	defer data.cleanUp()
+	domData := newTestDomainData(t)
+	defer domData.cleanUp()
 
-	if err = testDomainTmpl.Execute(&xml, data); err != nil {
-		t.Fatal(err)
+	if err = testDomainTmpl.Execute(&xml, domData); err != nil {
+		t.Error(err)
 	}
 
 	if _, err := conn.DefineDomain(xml.String()); err == nil {
@@ -81,6 +82,17 @@ func TestConnectionReadOnly(t *testing.T) {
 
 	if _, err := conn.CreateDomain(xml.String(), DomCreateDefault); err == nil {
 		t.Error("a readonly libvirt connection should not allow creating domains")
+	}
+
+	xml.Reset()
+	secData := newTestSecretData()
+
+	if err = testSecretTmpl.Execute(&xml, secData); err != nil {
+		t.Error(err)
+	}
+
+	if _, err = conn.DefineSecret(xml.String()); err == nil {
+		t.Error("a readonly libvirt connection should not allow defining secrets")
 	}
 }
 
@@ -277,8 +289,8 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 		t.Error("domain should be persistent after being defined")
 	}
 
-	if err := dom.Create(DomCreateDefault); err != nil {
-		t.Fatal(err)
+	if err = dom.Create(DomCreateDefault); err != nil {
+		t.Error(err)
 	}
 
 	if !dom.IsActive() {
@@ -289,8 +301,8 @@ func TestConnectionDefineUndefineDomain(t *testing.T) {
 		t.Error("domain should still be persistent after being defined and created")
 	}
 
-	if err := dom.Destroy(DomDestroyDefault); err != nil {
-		t.Fatal(err)
+	if err = dom.Destroy(DomDestroyDefault); err != nil {
+		t.Error(err)
 	}
 
 	if dom.IsActive() {
@@ -441,12 +453,9 @@ func TestConnectionDefineUndefineSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer sec.Free()
 
 	if err = sec.Undefine(); err != nil {
-		t.Error(err)
-	}
-
-	if err = sec.Free(); err != nil {
 		t.Error(err)
 	}
 }

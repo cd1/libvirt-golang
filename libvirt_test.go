@@ -223,6 +223,16 @@ func newTestEnvironment(t testing.TB) *testEnvironment {
 // exists, and the connection to libvirt is closed.
 func (env *testEnvironment) cleanUp() {
 	if env.dom != nil {
+		if env.snap != nil {
+			if err := env.snap.Delete(SnapDeleteDefault); err != nil {
+				env.t.Error(err)
+			}
+
+			if err := env.snap.Free(); err != nil {
+				env.t.Error(err)
+			}
+		}
+
 		state, _, err := env.dom.State()
 		if err != nil {
 			env.t.Error(err)
@@ -230,21 +240,6 @@ func (env *testEnvironment) cleanUp() {
 
 		if state != DomStateShutoff {
 			if err := env.dom.Destroy(DomDestroyDefault); err != nil {
-				env.t.Error(err)
-			}
-		}
-
-		snapshots, err := env.dom.ListSnapshots(SnapListRoots)
-		if err != nil {
-			env.t.Error(err)
-		}
-
-		for _, snap := range snapshots {
-			if err = snap.Delete(SnapDeleteChildren); err != nil {
-				env.t.Error(err)
-			}
-
-			if err = snap.Free(); err != nil {
 				env.t.Error(err)
 			}
 		}

@@ -75,6 +75,7 @@ func TestSnapshotListChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer childSnap.Free()
+	defer childSnap.Delete(SnapDeleteDefault)
 
 	snapshots, err := env.snap.ListChildren(SnapListDescendants)
 	if err != nil {
