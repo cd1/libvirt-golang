@@ -834,6 +834,20 @@ func TestConnectionLookupVolume(t *testing.T) {
 	}
 }
 
+func TestConnectionNewStream(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	str, err := env.conn.NewStream(StrDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = str.Free(); err != nil {
+		t.Error(err)
+	}
+}
+
 func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)
@@ -997,6 +1011,21 @@ func BenchmarkConnectionCreatePool(b *testing.B) {
 		if err = pool.Destroy(); err != nil {
 			b.Error(err)
 		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkConnectionNewStream(b *testing.B) {
+	env := newTestEnvironment(b)
+	defer env.cleanUp()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		str, err := env.conn.NewStream(StrDefault)
+		if err != nil {
+			b.Error(err)
+		}
+		defer str.Free()
 	}
 	b.StopTimer()
 }

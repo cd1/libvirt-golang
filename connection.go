@@ -965,3 +965,30 @@ func (conn Connection) LookupStorageVolumeByKey(key string) (StorageVolume, erro
 
 	return vol, nil
 }
+
+// NewStream creates a new stream object which can be used to perform streamed
+// I/O with other public API function.
+// When no longer needed, a stream object must be released with Free. If a data
+// stream has been used, then the application must call Finish or Abort before
+// free'ing to, in order to notify the driver of termination.
+// If a non-blocking data stream is required passed StrNonBlock for flags,
+// otherwise pass StrDefault.
+func (conn Connection) NewStream(flags StreamFlag) (Stream, error) {
+	conn.log.Printf("creating stream (flags = %v)...\n", flags)
+	cStream := C.virStreamNew(conn.virConnect, C.uint(flags))
+
+	if cStream == nil {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return Stream{}, err
+	}
+
+	conn.log.Println("stream created")
+
+	stream := Stream{
+		log:       conn.log,
+		virStream: cStream,
+	}
+
+	return stream, nil
+}
