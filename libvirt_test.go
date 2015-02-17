@@ -167,6 +167,7 @@ type testEnvironment struct {
 	secData  *testSecretData
 	snap     *Snapshot
 	snapData *testSnapshotData
+	str      *Stream
 	t        testing.TB
 	volData  *testStorageVolumeData
 	vol      *StorageVolume
@@ -428,6 +429,12 @@ func (env *testEnvironment) cleanUp() {
 		}
 	}
 
+	if env.str != nil {
+		if err := env.str.Free(); err != nil {
+			env.t.Error(err)
+		}
+	}
+
 	_, err := env.conn.Close()
 	if err != nil {
 		env.t.Error(err)
@@ -553,6 +560,18 @@ func (env *testEnvironment) withStorageVolume() *testEnvironment {
 
 	env.volData = data
 	env.vol = &vol
+
+	return env
+}
+
+// withStream creates a new test stream.
+func (env *testEnvironment) withStream() *testEnvironment {
+	str, err := env.conn.NewStream(StrDefault)
+	if err != nil {
+		env.t.Fatal(err)
+	}
+
+	env.str = &str
 
 	return env
 }
