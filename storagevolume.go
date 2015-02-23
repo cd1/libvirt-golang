@@ -327,3 +327,56 @@ func (vol StorageVolume) StoragePool() (StoragePool, error) {
 
 	return pool, nil
 }
+
+// Upload uploads new content to the volume from a stream. This call will fail
+// if "offset" + "length" exceeds the size of the volume. Otherwise, if "length"
+// is non-zero, an error will be raised if an attempt is made to upload greater
+// than "length" bytes of data.
+// This call sets up an asynchronous stream; subsequent use of stream APIs is
+// necessary to transfer the actual data, determine how much data is
+// successfully transferred, and detect any errors. The results will be
+// unpredictable if another active stream is writing to the storage volume.
+// When the data stream is closed whether the upload is successful or not the
+// target storage pool will be refreshed to reflect pool and volume changes as a
+// result of the upload. Depending on the target volume storage backend and the
+// source stream type for a successful upload, the target volume may take on the
+// characteristics from the source stream such as format type, capacity,
+// and allocation.
+func (vol StorageVolume) Upload(str Stream, offset uint64, length uint64) error {
+	vol.log.Printf("setting up to upload %v bytes of data to storage volume in offset %v...\n", length, offset)
+	cRet := C.virStorageVolUpload(vol.virStorageVol, str.virStream, C.ulonglong(offset), C.ulonglong(length), 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		vol.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	vol.log.Println("data set up")
+
+	return nil
+}
+
+// Download downloads the content of the volume as a stream. If "length" is
+// zero, then the remaining contents of the volume after "offset" will
+// be downloaded.
+// This call sets up an asynchronous stream; subsequent use of stream APIs is
+// necessary to transfer the actual data, determine how much data is
+// successfully transferred, and detect any errors. The results will be
+// unpredictable if another active stream is writing to the storage volume.
+func (vol StorageVolume) Download(str Stream, offset uint64, length uint64) error {
+	vol.log.Printf("setting up to download %v bytes of data from storage volume in offset %v...\n", length, offset)
+	cRet := C.virStorageVolDownload(vol.virStorageVol, str.virStream, C.ulonglong(offset), C.ulonglong(length), 0)
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		vol.log.Printf("an error occurred: %v\n", err)
+		return err
+	}
+
+	vol.log.Println("data set up")
+
+	return nil
+}

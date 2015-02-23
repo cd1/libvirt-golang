@@ -1,7 +1,11 @@
 package libvirt
 
 import (
+	"bytes"
+	"io"
 	"testing"
+
+	"github.com/cd1/utils-golang"
 )
 
 const deltaResizeChunkSize = 1024 // 1 KiB
@@ -133,6 +137,64 @@ func TestStorageVolumeLookupPool(t *testing.T) {
 
 	if uuid != env.poolData.UUID {
 		t.Errorf("unexpected pool looked up from storage volume; got=%v, want=%v", uuid, env.poolData.UUID)
+	}
+}
+
+func TestStorageVolumeUploadDownload(t *testing.T) {
+	env := newTestEnvironment(t).withStorageVolume().withStream()
+	defer env.cleanUp()
+
+	if err := env.vol.Upload(Stream{}, 0, 0); err == nil {
+		t.Error("an error was not returned when trying to set up an upload with an invalid stream")
+	}
+
+	if err := env.vol.Download(Stream{}, 0, 0); err == nil {
+		t.Error("an error was not returned when trying to set up a download with an invalid stream")
+	}
+
+	data := utils.RandomString()
+	dataLen := len(data)
+
+	if err := env.vol.Upload(*env.str, 0, uint64(dataLen)); err != nil {
+		t.Fatal(err)
+	}
+
+	buf := bytes.NewBufferString(data)
+
+	nBytes, err := io.Copy(env.str, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if nBytes != int64(dataLen) {
+		t.Errorf("unexpected number of bytes written; got=%v, want=%v", nBytes, dataLen)
+	}
+
+	if err = env.str.Finish(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = env.vol.Download(*env.str, 0, uint64(dataLen)); err != nil {
+		t.Fatal(err)
+	}
+
+	buf.Reset()
+
+	nBytes, err = io.Copy(buf, env.str)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if nBytes != int64(dataLen) {
+		t.Errorf("unexpected number of bytes read; got=%v, want=%v", nBytes, dataLen)
+	}
+
+	if err = env.str.Finish(); err != nil {
+		t.Fatal(err)
+	}
+
+	if dl := buf.String(); dl != data {
+		t.Errorf("unexpected downloaded content; got=%v, want=%v", dl, data)
 	}
 }
 

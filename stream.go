@@ -1,9 +1,12 @@
 package libvirt
 
+// #include <stdlib.h>
 // #include <libvirt/libvirt.h>
 import "C"
 import (
+	"io"
 	"log"
+	"unsafe"
 )
 
 // StreamFlag defines how a stream should be created.
@@ -104,4 +107,70 @@ func (str Stream) Ref() error {
 	str.log.Println("reference count incremented")
 
 	return nil
+}
+
+// Write writes a series of bytes to the stream. This method may block the
+// calling application for an arbitrary amount of time. Once an application has
+// finished sending data it should call Finish to wait for successful
+// confirmation from the driver, or detect any error.
+// This method may not be used if a stream source has been registered.
+// Errors are not guaranteed to be reported synchronously with the call, but may
+// instead be delayed until a subsequent call.
+// This function is equivalent to the libvirt function "Send" but it has been
+// renamed to "Write" in order to implement the standard interface io.Writer.
+func (str Stream) Write(data []byte) (int, error) {
+	cData := C.CString(string(data))
+	defer C.free(unsafe.Pointer(cData))
+
+	l := len(data)
+
+	str.log.Printf("sending %v bytes to stream...\n", l)
+	cRet := C.virStreamSend(str.virStream, cData, C.size_t(l))
+	ret := int32(cRet)
+
+	if ret < 0 {
+		err := LastError()
+		str.log.Printf("an error occurred: %v\n", err)
+		return 0, err
+	}
+
+	str.log.Printf("%v bytes sent\n", ret)
+
+	return int(ret), nil
+}
+
+// Read reads a series of bytes from the stream. This method may block the
+// calling application for an arbitrary amount of time.
+// Errors are not guaranteed to be reported synchronously with the call, but may
+// instead be delayed until a subsequent call.
+// This function is equivalent to the libvirt function "Recv" but it has been
+// renamed to "Read" in order to implement the standard interface io.Reader. And
+// due to that interface requirement, this function now returns (0, io.EOF)
+// instead of (0, nil) when there's nothing left to be read from the stream.
+func (str Stream) Read(data []byte) (int, error) {
+	dataLen := len(data)
+
+	cData := (*C.char)(C.malloc(C.size_t(dataLen)))
+	defer C.free(unsafe.Pointer(cData))
+
+	str.log.Printf("receiving %v bytes from stream...\n", dataLen)
+	cRet := C.virStreamRecv(str.virStream, (*C.char)(unsafe.Pointer(cData)), C.size_t(dataLen))
+	ret := int32(cRet)
+
+	if ret < 0 {
+		err := LastError()
+		str.log.Printf("an error occurred: %v\n", err)
+		return 0, err
+	}
+
+	str.log.Printf("%v bytes received\n", ret)
+
+	if ret == 0 && dataLen > 0 {
+		return 0, io.EOF
+	}
+
+	newData := C.GoStringN(cData, cRet)
+	copy(data, newData)
+
+	return int(ret), nil
 }
