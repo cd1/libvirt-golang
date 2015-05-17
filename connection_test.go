@@ -848,6 +848,26 @@ func TestConnectionNewStream(t *testing.T) {
 	}
 }
 
+func TestConnectionListInterfaces(t *testing.T) {
+	env := newTestEnvironment(t)
+	defer env.cleanUp()
+
+	if _, err := env.conn.ListInterfaces(InterfaceListFlag(^uint32(0))); err == nil {
+		t.Error("an error was not returned when using an invalid flag")
+	}
+
+	interfaces, err := env.conn.ListInterfaces(IfaceListAll)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, iface := range interfaces {
+		if err = iface.Free(); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkConnectionOpenClose(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		conn, err := Open(testConnectionURI, ReadWrite, testLogOutput)

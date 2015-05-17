@@ -992,3 +992,43 @@ func (conn Connection) NewStream(flags StreamFlag) (Stream, error) {
 
 	return stream, nil
 }
+
+// ListInterfaces collects the list of interfaces, and allocate an array to
+// store those objects.
+// Normally, all interfaces are returned; however, "flags" can be used to filter
+// the results for a smaller list of targeted interfaces. The valid flags are
+// divided into groups, where each group contains bits that describe mutually
+// exclusive attributes of a interface, and where all bits within a group
+// describe all possible interfaces.
+// The only group of "flags" is IfaceListActive (up) and
+// IfaceListInactive (down) to filter the interfaces by state.
+func (conn Connection) ListInterfaces(flags InterfaceListFlag) ([]Interface, error) {
+	var cInterfaces []C.virInterfacePtr
+	cInterfacesSH := (*reflect.SliceHeader)(unsafe.Pointer(&cInterfaces))
+
+	conn.log.Printf("reading interfaces (flags = %v)...\n", flags)
+	cRet := C.virConnectListAllInterfaces(conn.virConnect, (**C.virInterfacePtr)(unsafe.Pointer(&cInterfacesSH.Data)), C.uint(flags))
+	ret := int32(cRet)
+
+	if ret == -1 {
+		err := LastError()
+		conn.log.Printf("an error occurred: %v\n", err)
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(cInterfacesSH.Data))
+
+	cInterfacesSH.Cap = int(ret)
+	cInterfacesSH.Len = int(ret)
+
+	interfaces := make([]Interface, ret)
+	for i, cIface := range cInterfaces {
+		interfaces[i] = Interface{
+			log:          conn.log,
+			virInterface: cIface,
+		}
+	}
+
+	conn.log.Printf("interfaces count: %v\n", ret)
+
+	return interfaces, nil
+}
